@@ -12,6 +12,8 @@ assistant's usage limit you have burned — and whether it is still working,
 done, or waiting on you — plus a deck of everyday tools beside the rings: what's
 playing, your clipboard history, and a focus timer.**
 
+**[Website](https://mr-who-root.github.io/notchdeck/) · [Download](https://github.com/Mr-Who-Root/notchdeck/releases/latest) · [Releases](https://github.com/Mr-Who-Root/notchdeck/releases)**
+
 ![The notch with its hover card](docs/design/frame-124-hover-tooltip.png)
 
 </div>
