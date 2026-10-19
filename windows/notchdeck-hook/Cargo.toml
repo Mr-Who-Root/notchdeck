@@ -1,0 +1,8 @@
+[package]
+name = "notchdeck-hook"
+version = "0.3.0"
+edition = "2021"
+description = "NotchDeck hook launcher: report Claude Code hook events, auto-start main app"
+license = "MIT"
+
+[dependencies]
