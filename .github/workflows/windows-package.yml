@@ -151,11 +151,12 @@ jobs:
       - name: Build the update feed
         if: steps.signing.outputs.signed == 'true'
         run: |
-          $zip = @(Get-ChildItem target/release/bundle/nsis/*-setup.nsis.zip -ErrorAction SilentlyContinue)
-          if ($zip.Count -ne 1) { throw "expected one updater archive, found $($zip.Count)" }
-          Copy-Item $zip[0].FullName NotchDeck-Setup.nsis.zip
-          $sigPath = "$($zip[0].FullName).sig"
-          $signature = if (Test-Path $sigPath) { (Get-Content $sigPath -Raw).Trim() } else { '' }
+          # Tauri 2 signs the setup .exe itself (the .nsis.zip archive was Tauri 1's), and
+          # NotchDeck-Setup.exe is that same file under a fixed name, so its signature
+          # is the one the bundler wrote beside the original.
+          $sig = @(Get-ChildItem target/release/bundle/nsis/*-setup.exe.sig -ErrorAction SilentlyContinue)
+          if ($sig.Count -ne 1) { throw "expected one updater signature, found $($sig.Count)" }
+          $signature = (Get-Content $sig[0].FullName -Raw).Trim()
           $version = (Get-Content notchdeck/tauri.conf.json -Raw | ConvertFrom-Json).version
           $feed = [ordered]@{
             version = $version
@@ -163,7 +164,7 @@ jobs:
             platforms = [ordered]@{
               'windows-x86_64' = [ordered]@{
                 signature = $signature
-                url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v$version/NotchDeck-Setup.nsis.zip"
+                url = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/v$version/NotchDeck-Setup.exe"
               }
             }
           }
@@ -174,9 +175,7 @@ jobs:
         if: steps.signing.outputs.signed == 'true'
         with:
           name: NotchDeck-update-feed-${{ github.sha }}
-          path: |
-            windows/latest.json
-            windows/NotchDeck-Setup.nsis.zip
+          path: windows/latest.json
           if-no-files-found: error
 
       # v* only: the rolling `preview` release belongs to Package, which deletes
@@ -206,4 +205,4 @@ jobs:
           if (-not $feed.platforms.'windows-x86_64'.signature) {
             throw 'the updater archive was not signed; refusing to publish a feed every updater would reject'
           }
-          gh release upload $env:TAG NotchDeck-Setup.nsis.zip latest.json --clobber
+          gh release upload $env:TAG latest.json --clobber
