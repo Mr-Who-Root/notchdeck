@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NotchDeck</title>
+<meta name="description" content="A small black notch on your screen edge: how much of each AI coding assistant's usage limit you have left, whether it is still working — plus Now Playing, clipboard history and a focus timer. For macOS and Windows.">
+<meta property="og:title" content="NotchDeck">
+<meta property="og:description" content="AI coding-assistant usage rings, Now Playing, clipboard history and a focus timer — in a notch on your screen edge. macOS and Windows.">
+<meta property="og:image" content="https://mr-who-root.github.io/notchdeck/assets/og.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<style>
+  :root{
+    --bg:#07080b; --bg-2:#0e1016; --panel:#12141b; --line:#232634; --line-2:#2e3243;
+    --ink:#f4f5f8; --ink-2:#b9bdca; --ink-3:#7f8597;
+    --green:#00ff88; --blue:#36a3ff; --amber:#ffbd2e;
+    --btn:#f4f5f8; --btn-ink:#07080b;
+    --shadow:0 30px 80px rgba(0,0,0,.55);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f6f7fa; --bg-2:#eceef3; --panel:#ffffff; --line:#e1e4ec; --line-2:#d2d6e1;
+      --ink:#0d0f14; --ink-2:#3d4252; --ink-3:#6b7183;
+      --green:#00a356; --blue:#0a7ae0; --amber:#b77b00;
+      --btn:#0d0f14; --btn-ink:#ffffff;
+      --shadow:0 24px 60px rgba(17,24,39,.16);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f7fa; --bg-2:#eceef3; --panel:#ffffff; --line:#e1e4ec; --line-2:#d2d6e1;
+    --ink:#0d0f14; --ink-2:#3d4252; --ink-3:#6b7183;
+    --green:#00a356; --blue:#0a7ae0; --amber:#b77b00;
+    --btn:#0d0f14; --btn-ink:#ffffff;
+    --shadow:0 24px 60px rgba(17,24,39,.16);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit}
+  img{max-width:100%;display:block}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+
+  /* ---- top bar */
+  header.bar{position:sticky;top:0;z-index:10;backdrop-filter:saturate(1.4) blur(14px);
+    -webkit-backdrop-filter:saturate(1.4) blur(14px);
+    background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
+  .bar .wrap{display:flex;align-items:center;gap:14px;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:650;text-decoration:none;letter-spacing:-.01em}
+  .brand img{width:30px;height:30px;border-radius:8px}
+  nav.links{margin-left:auto;display:flex;gap:22px;font-size:14px;color:var(--ink-2)}
+  nav.links a{text-decoration:none;white-space:nowrap}
+  nav.links a:hover{color:var(--ink)}
+  @media (max-width:640px){ nav.links .hide-sm{display:none} }
+  @media (max-width:440px){ nav.links .hide-xs{display:none} nav.links{gap:16px} }
+
+  /* ---- hero */
+  .hero{position:relative;padding:84px 0 40px;text-align:center;isolation:isolate}
+  .hero::before{content:"";position:absolute;inset:-120px 0 auto;height:640px;z-index:-1;
+    background:radial-gradient(600px 300px at 50% 18%,color-mix(in srgb,var(--blue) 26%,transparent),transparent 70%),
+               radial-gradient(420px 220px at 30% 40%,color-mix(in srgb,var(--green) 14%,transparent),transparent 70%),
+               radial-gradient(420px 220px at 70% 42%,color-mix(in srgb,var(--amber) 12%,transparent),transparent 70%)}
+  .hero .icon{width:112px;height:112px;margin:0 auto 26px;border-radius:26px;filter:drop-shadow(0 18px 40px rgba(0,0,0,.45))}
+  h1{font-size:clamp(40px,7vw,68px);line-height:1.04;letter-spacing:-.035em;margin:0 0 18px;font-weight:750}
+  h1 .grad{background:linear-gradient(90deg,var(--green),var(--blue) 55%,var(--amber));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{max-width:720px;margin:0 auto 34px;font-size:clamp(17px,2.2vw,20px);color:var(--ink-2)}
+  .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:10px;padding:13px 20px;border-radius:12px;
+    font-weight:600;font-size:15px;text-decoration:none;border:1px solid var(--line-2);color:var(--ink);background:var(--panel);
+    transition:transform .15s ease,border-color .15s ease}
+  .btn:hover{transform:translateY(-1px);border-color:var(--ink-3)}
+  .btn.primary{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+  .btn svg{width:18px;height:18px;flex:none}
+  .btn small{font-weight:500;opacity:.65;font-size:13px}
+  .meta{margin-top:16px;font-size:13px;color:var(--ink-3)}
+  .meta a{color:var(--ink-2)}
+  .shot{margin:56px auto 0;max-width:900px;border-radius:var(--radius);overflow:hidden;
+    border:1px solid var(--line);box-shadow:var(--shadow)}
+
+  /* ---- sections */
+  section{padding:80px 0}
+  .eyebrow{font-size:13px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);margin:0 0 10px}
+  h2{font-size:clamp(28px,4vw,40px);letter-spacing:-.025em;line-height:1.12;margin:0 0 16px}
+  .sub{color:var(--ink-2);max-width:680px;margin:0 0 44px;font-size:17px}
+
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
+  .card .pic{background:#5a5a5a;border-bottom:1px solid var(--line)}
+  .card .pic img{width:100%;aspect-ratio:1100/640;object-fit:cover}
+  .card .body{padding:20px 22px 24px}
+  .card h3{margin:0 0 6px;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+  .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .card p{margin:0;color:var(--ink-2);font-size:15px}
+
+  .feature-row{display:grid;gap:40px;grid-template-columns:1.05fr .95fr;align-items:center}
+  @media (max-width:860px){ .feature-row{grid-template-columns:1fr} }
+  .feature-row .pic{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);background:#5a5a5a}
+  ul.ticks{list-style:none;padding:0;margin:0;display:grid;gap:12px}
+  ul.ticks li{padding-left:30px;position:relative;color:var(--ink-2)}
+  ul.ticks li::before{content:"";position:absolute;left:0;top:7px;width:16px;height:16px;border-radius:50%;
+    background:color-mix(in srgb,var(--green) 22%,transparent);box-shadow:inset 0 0 0 1.5px var(--green)}
+  ul.ticks b{color:var(--ink)}
+
+  .providers{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .providers span{font-size:13px;padding:6px 11px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);background:var(--bg-2)}
+
+  .platforms{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
+  .platform{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px}
+  .platform h3{margin:0 0 4px;font-size:20px;display:flex;align-items:center;gap:10px}
+  .platform h3 svg{width:22px;height:22px}
+  .platform .req{color:var(--ink-3);font-size:14px;margin:0 0 16px}
+  .platform ol{margin:0 0 20px;padding-left:20px;color:var(--ink-2);font-size:15px}
+  .platform li{margin:6px 0}
+  code,pre{font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  pre{background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0 0;
+    overflow-x:auto;color:var(--ink)}
+  :not(pre)>code{background:var(--bg-2);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+
+  .privacy{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr))}
+  .privacy div{border-top:2px solid var(--line-2);padding-top:16px}
+  .privacy h4{margin:0 0 6px;font-size:16px}
+  .privacy p{margin:0;color:var(--ink-2);font-size:15px}
+
+  footer{border-top:1px solid var(--line);padding:34px 0 48px;color:var(--ink-3);font-size:14px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+  footer a{color:var(--ink-2);text-decoration:none}
+  footer a:hover{color:var(--ink)}
+  footer .right{margin-left:auto;display:flex;gap:20px}
+  @media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} .btn{transition:none} }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="#top"><img src="assets/icon.png" alt="">NotchDeck</a>
+    <nav class="links">
+      <a href="#deck" class="hide-xs">The deck</a>
+      <a href="#usage" class="hide-sm">Usage rings</a>
+      <a href="#download">Download</a>
+      <a href="https://github.com/Mr-Who-Root/notchdeck">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <img class="icon" src="assets/icon.png" alt="NotchDeck app icon">
+      <h1>Your AI limits,<br><span class="grad">and a deck of tools,</span> in the notch.</h1>
+      <p class="lede">A small black notch on your screen edge that shows how much of each coding assistant's
+        usage limit you have burned — and whether it is still working, done, or waiting on you —
+        with <b>Now Playing</b>, <b>clipboard history</b> and a <b>focus timer</b> right beside the rings.</p>
+      <div class="cta">
+        <a class="btn primary" id="dl-mac" href="https://github.com/Mr-Who-Root/notchdeck/releases/latest/download/NotchDeck.dmg">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.19-1.73-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.14.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.33-3.54ZM14.18 6.13c.61-.74 1.02-1.76.91-2.78-.88.04-1.94.59-2.57 1.32-.56.65-1.06 1.69-.93 2.69.98.08 1.98-.5 2.59-1.23Z"/></svg>
+          Download for macOS <small>15+</small>
+        </a>
+        <a class="btn" id="dl-win" href="https://github.com/Mr-Who-Root/notchdeck/releases/latest/download/NotchDeck-Setup.exe">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.1 10.4 4v7.1H3V5.1Zm8.3-1.2L21 2.5v8.6h-9.7V3.9ZM3 12.9h7.4V20L3 18.9v-6Zm8.3 0H21v8.6l-9.7-1.4v-7.2Z"/></svg>
+          Download for Windows <small>10/11</small>
+        </a>
+      </div>
+      <p class="meta"><span id="release-line">Free and open source · MIT license</span> · <a href="https://github.com/Mr-Who-Root/notchdeck/releases">All releases</a></p>
+      <div class="shot"><img src="assets/hero.jpg" alt="The NotchDeck notch on the right edge of a Mac screen with its Claude usage card open" width="1400" height="1400" loading="eager"></div>
+    </div>
+  </div>
+
+  <section id="deck">
+    <div class="wrap">
+      <p class="eyebrow">The deck</p>
+      <h2>Three everyday tools, one hover away.</h2>
+      <p class="sub">They ride the notch after the usage rings and behave exactly like them — they fold away, slide
+        along the edge and follow it round all four sides of the screen. Switch any of them off and it stops reading anything at all.</p>
+      <div class="grid">
+        <article class="card">
+          <div class="pic"><img src="assets/deck-nowPlaying.png" alt="The Now Playing card in the notch" loading="lazy"></div>
+          <div class="body">
+            <h3><span class="dot" style="background:var(--blue)"></span>Now Playing</h3>
+            <p>Whatever the system says is playing — Music, Spotify, podcasts, a browser tab — with artwork, a scrubber you
+              can drag, and previous / play-pause / next. Click the cell itself to play or pause.</p>
+          </div>
+        </article>
+        <article class="card">
+          <div class="pic"><img src="assets/deck-clipboard.png" alt="The Clipboard history card in the notch" loading="lazy"></div>
+          <div class="body">
+            <h3><span class="dot" style="background:var(--green)"></span>Clipboard history</h3>
+            <p>The text, links, files and images you copied, most recent first. Click a clip to copy it again, pin the ones you
+              reuse, and hover a long one to read it in full.</p>
+          </div>
+        </article>
+        <article class="card">
+          <div class="pic"><img src="assets/deck-timer.png" alt="The Focus Timer card in the notch" loading="lazy"></div>
+          <div class="body">
+            <h3><span class="dot" style="background:var(--amber)"></span>Focus timer</h3>
+            <p>Pick 5, 15, 25 or 50 minutes, click the cell to start or pause, and the notch opens with a chime when time is up.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap feature-row">
+      <div class="pic"><img src="assets/deck-clipboard-peek.png" alt="A long clip previewed in full inside the clipboard card" loading="lazy"></div>
+      <div>
+        <p class="eyebrow">Clipboard, privately</p>
+        <h2>Everything you copied — nothing you shouldn't keep.</h2>
+        <ul class="ticks">
+          <li><b>Password managers are skipped.</b> Anything marked concealed or transient, or copied while a password manager is in front, is never recorded.</li>
+          <li><b>Stays on your machine.</b> History lives in one file readable only by your user; turn off “Remember history” and it is deleted.</li>
+          <li><b>Images never touch disk.</b> They are kept in memory for the session only.</li>
+          <li><b>Long clips, in full.</b> Hover a clip its row cuts short and the whole thing appears, with its length.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="usage">
+    <div class="wrap">
+      <p class="eyebrow">Usage rings</p>
+      <h2>How much is left — and is it still working?</h2>
+      <p class="sub">Each ring is one assistant's limit, coloured by how much is gone. Hover it for every limit window and
+        when it resets. A thin arc spins while a session is busy and pulses amber when one is waiting on you — and the
+        notch opens by itself, with a sound, when an agent finishes or stops to ask.</p>
+      <div class="providers">
+        <span>Claude Code</span><span>Codex</span><span>Cursor</span><span>Antigravity</span><span>GitHub Copilot</span>
+        <span>Grok</span><span>GLM / Z.ai</span><span>OpenCode</span><span>Kimi</span><span>Kiro</span><span>Amp</span>
+        <span>MiniMax</span><span>DeepSeek</span><span>Ollama</span><span>LM Studio</span><span>oMLX</span><span>Custom endpoints</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="download">
+    <div class="wrap">
+      <p class="eyebrow">Download</p>
+      <h2>macOS and Windows. Updates itself.</h2>
+      <p class="sub">After the first install, NotchDeck checks this project's releases on its own and offers new versions
+        in the notch — or press <b>Settings → General → Check for Updates</b>.</p>
+      <div class="platforms">
+        <div class="platform">
+          <h3><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.19-1.73-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.14.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.33-3.54ZM14.18 6.13c.61-.74 1.02-1.76.91-2.78-.88.04-1.94.59-2.57 1.32-.56.65-1.06 1.69-.93 2.69.98.08 1.98-.5 2.59-1.23Z"/></svg>macOS</h3>
+          <p class="req">macOS 15 or later · Apple Silicon and Intel</p>
+          <ol>
+            <li>Download <b>NotchDeck.dmg</b> and drag NotchDeck to Applications.</li>
+            <li>The build is not notarized, so clear the download quarantine once:
+              <pre><code>xattr -dr com.apple.quarantine /Applications/NotchDeck.app</code></pre></li>
+            <li>Open NotchDeck. If macOS says it is “damaged”, that is the quarantine flag — run the command above.</li>
+          </ol>
+          <a class="btn primary" href="https://github.com/Mr-Who-Root/notchdeck/releases/latest/download/NotchDeck.dmg">Download NotchDeck.dmg</a>
+        </div>
+        <div class="platform">
+          <h3><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.1 10.4 4v7.1H3V5.1Zm8.3-1.2L21 2.5v8.6h-9.7V3.9ZM3 12.9h7.4V20L3 18.9v-6Zm8.3 0H21v8.6l-9.7-1.4v-7.2Z"/></svg>Windows</h3>
+          <p class="req">Windows 10 or 11 · installs for the current user, no admin rights</p>
+          <ol>
+            <li>Download and run <b>NotchDeck-Setup.exe</b>. It fetches WebView2 if Windows does not already have it.</li>
+            <li>The installer is not code-signed, so SmartScreen asks first: choose <b>More info</b>, then <b>Run anyway</b>.</li>
+            <li>The notch appears on the right edge of your screen; move it to any edge in Settings.</li>
+          </ol>
+          <a class="btn primary" href="https://github.com/Mr-Who-Root/notchdeck/releases/latest/download/NotchDeck-Setup.exe">Download NotchDeck-Setup.exe</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <p class="eyebrow">Honest by design</p>
+      <h2>Reads what your tools already read. Nothing more.</h2>
+      <div class="privacy">
+        <div><h4>Borrowed sign-ins</h4><p>Most providers are read with the session the tool you already use keeps on your machine — no new account, and no browser cookies are ever read.</p></div>
+        <div><h4>No invented numbers</h4><p>Every failure shows as a visible status — stale, signed out, error — never as a made-up percentage.</p></div>
+        <div><h4>No analytics</h4><p>NotchDeck sends no analytics or crash reports. It talks to the providers you switch on, and to GitHub to check for updates.</p></div>
+        <div><h4>Open source</h4><p>MIT licensed, built in Swift on macOS and Rust + Tauri on Windows. Read every line on GitHub.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>NotchDeck · MIT license</span>
+    <div class="right">
+      <a href="https://github.com/Mr-Who-Root/notchdeck">Source</a>
+      <a href="https://github.com/Mr-Who-Root/notchdeck/releases">Releases</a>
+      <a href="https://github.com/Mr-Who-Root/notchdeck/issues">Issues</a>
+      <a href="https://github.com/Mr-Who-Root/notchdeck/blob/main/LICENSE">License</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // The newest release's version and date, so the page never says less than the release page does.
+  fetch('https://api.github.com/repos/Mr-Who-Root/notchdeck/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(r => r.ok ? r.json() : null)
+    .then(rel => {
+      if (!rel || !rel.tag_name) return;
+      const when = rel.published_at ? new Date(rel.published_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+      const line = document.getElementById('release-line');
+      line.textContent = `Latest: ${rel.tag_name}${when ? ' · ' + when : ''} · Free and open source`;
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>
