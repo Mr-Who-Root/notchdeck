@@ -11,7 +11,7 @@
 set -euo pipefail
 
 DMG=$1 VERSION=$2 BUILD=$3 REPO=$4 SUMMARY=$5
-: "${SIGN_UPDATE:?set SIGN_UPDATE to Sparkle's sign_update}"
+: "${SIGN_UPDATE:?set SIGN_UPDATE to the sign_update tool from Sparkle}"
 
 # Prints: sparkle:edSignature="…" length="…"
 SIGNATURE=$("$SIGN_UPDATE" --account notchdeck "$DMG")
