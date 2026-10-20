@@ -79,7 +79,7 @@ private enum SettingsSection: String, CaseIterable, Identifiable, Hashable {
     var subtitle: String {
         switch self {
         case .accounts:      return L10n.t("Choose which providers the notch reads.")
-        case .deck:          return L10n.t("Now Playing, clipboard history and a focus timer, beside the rings.")
+        case .deck:          return L10n.t("Now Playing, your next meeting, the clipboard, the vault, a focus timer and live status, beside the rings.")
         case .phone:         return L10n.t("See your usage on your phone.")
         case .deepseek:      return L10n.t("Peak and off-peak pricing for your DeepSeek spend.")
         case .ollama:        return L10n.t("Models running in Ollama on this Mac.")
@@ -812,7 +812,7 @@ struct SettingsView: View {
                 .disabled(!preferences.showsClipboard)
                 Toggle(L10n.t("Always strip formatting from copied text"), isOn: $preferences.clipboardAlwaysPlainText)
                     .disabled(!preferences.showsClipboard)
-                Text(L10n.t("Hover the cell for your latest clips: search them, click one to copy it again, or ☆ it to keep as a snippet. The Aa button turns rich text on the clipboard into plain text. Anything a password manager copies, or marks as concealed, is never recorded. Images are kept in memory only."))
+                Text(L10n.t("Hover the cell for your latest clips: search them, click one to copy it again, or ☆ it to keep as a snippet (☆ again takes it back out). Anything a password manager copies, or marks as concealed, is never recorded. Images are kept in memory only."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -852,16 +852,19 @@ struct SettingsView: View {
                 Toggle(L10n.t("Take breaks between focus sessions"), isOn: $preferences.focusCycles)
                     .disabled(!preferences.showsFocusTimer)
                 if preferences.focusCycles {
-                    Stepper(value: $preferences.focusShortBreakMinutes, in: 1...60) {
-                        Text(L10n.t("Short break: \(preferences.focusShortBreakMinutes) min"))
+                    Group {
+                        Stepper(value: $preferences.focusShortBreakMinutes, in: 1...60) {
+                            Text(L10n.t("Short break: \(preferences.focusShortBreakMinutes) min"))
+                        }
+                        Stepper(value: $preferences.focusLongBreakMinutes, in: 1...90) {
+                            Text(L10n.t("Long break: \(preferences.focusLongBreakMinutes) min"))
+                        }
+                        Stepper(value: $preferences.focusLongBreakEvery, in: 2...8) {
+                            Text(L10n.t("Long break after \(preferences.focusLongBreakEvery) sessions"))
+                        }
+                        Toggle(L10n.t("Start the next phase by itself"), isOn: $preferences.focusAutoStartsNext)
                     }
-                    Stepper(value: $preferences.focusLongBreakMinutes, in: 1...90) {
-                        Text(L10n.t("Long break: \(preferences.focusLongBreakMinutes) min"))
-                    }
-                    Stepper(value: $preferences.focusLongBreakEvery, in: 2...8) {
-                        Text(L10n.t("Long break after \(preferences.focusLongBreakEvery) sessions"))
-                    }
-                    Toggle(L10n.t("Start the next phase by itself"), isOn: $preferences.focusAutoStartsNext)
+                    .disabled(!preferences.showsFocusTimer)
                 }
                 FocusShortcutsRows(preferences: preferences)
                     .disabled(!preferences.showsFocusTimer)
@@ -872,7 +875,10 @@ struct SettingsView: View {
             }
 
             Section(L10n.t("Live Status")) {
-                Toggle(L10n.t("Open the notch when the charger goes in or out"), isOn: $preferences.liveCharging)
+                // Only where there is a battery for the charger to fill.
+                if PowerMonitor.read() != nil {
+                    Toggle(L10n.t("Open the notch when the charger goes in or out"), isOn: $preferences.liveCharging)
+                }
                 Toggle(L10n.t("Show downloads and AirDrop while they run"), isOn: $preferences.liveDownloads)
                 Text(L10n.t("Downloads from Safari, Chrome and AirDrop get a cell of their own while they run, and the notch opens as each one lands, with Open, Show in Finder and Add to Vault."))
                     .font(.caption)
@@ -1548,7 +1554,7 @@ struct SettingsView: View {
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
-                        Text(L10n.t("Usage rings, Now Playing, clipboard history and a focus timer, in your notch."))
+                        Text(L10n.t("Usage rings, Now Playing, your next meeting, clipboard history, a vault for files and a focus timer, in your notch."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)

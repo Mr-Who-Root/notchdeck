@@ -53,7 +53,7 @@ enum ReleaseNotes {
                     ),
                     ReleaseNote.Change(
                         title: L10n.t("Clipboard search and snippets"),
-                        detail: L10n.t("Search your clips, save the ones you reuse as snippets, and turn rich text into plain text.")
+                        detail: L10n.t("Search your clips, save the ones you reuse as snippets, and have formatted text pasted plain.")
                     ),
                     ReleaseNote.Change(
                         title: L10n.t("Volume and output"),

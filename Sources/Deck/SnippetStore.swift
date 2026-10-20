@@ -49,6 +49,15 @@ final class SnippetStore: ObservableObject {
         return snippet
     }
 
+    /// The star on a clip: saves it, or — already saved — takes it back out.
+    func toggle(text: String) {
+        if let saved = snippets.first(where: { $0.text == text }) {
+            remove(saved)
+        } else {
+            add(text: text)
+        }
+    }
+
     func contains(text: String) -> Bool {
         snippets.contains { $0.text == text }
     }

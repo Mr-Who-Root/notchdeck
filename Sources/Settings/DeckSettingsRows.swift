@@ -70,7 +70,10 @@ struct SnippetsEditor: View {
             }
         }
         VStack(alignment: .leading, spacing: 6) {
-            TextField(L10n.t("Title (optional)"), text: $title)
+            // A box of its own, so it reads as a field and not as a label.
+            TextField("", text: $title, prompt: Text(L10n.t("Title (optional)")))
+                .textFieldStyle(.roundedBorder)
+                .labelsHidden()
             TextEditor(text: $text)
                 .font(.body)
                 .frame(minHeight: 54, maxHeight: 110)

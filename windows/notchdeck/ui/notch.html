@@ -2572,7 +2572,7 @@ function clipAge(at){
 function clipboardHtml(){
   const tab=(id,label)=>`<button class="d-tab${clipTab===id?' on':''}" data-tab="${id}">${esc(textCopy(label))}</button>`;
   let html=`<div class="d-headrow"><span class="c-title">${esc(textCopy('Clipboard'))}</span><span class="d-tabs">${tab('recent','Recent')}${tab('snippets','Snippets')}</span>`
-    +`<span class="d-acts"><button class="d-link" data-act="plain" title="${esc(textCopy('Put formatted text on the clipboard back as plain text'))}">${esc(textCopy('Plain text'))}</button>`
+    +`<span class="d-acts">`
     +(clipTab==='recent'&&clips.some(c=>!c.pinned)?`<button class="d-link" data-act="clear" title="${esc(textCopy('Forget every clip that isn’t pinned'))}">${esc(textCopy('Clear'))}</button>`:'')
     +`</span></div>`;
   if(clipTab==='recent') html+=`<input class="c-search" type="text" spellcheck="false" autocomplete="off" placeholder="${esc(textCopy('Search'))}" value="${esc(clipQuery)}">`;
@@ -2603,7 +2603,7 @@ function clipListHtml(){
     html+=`<div class="clip${copied?' copied':''}" data-clip="${c.id}">`
       +`<span class="k">${kind}</span><span class="t">${esc(c.preview)}</span>`
       +`<span class="a">${copied?esc(textCopy('Copied')):esc(clipAge(c.at))}</span>`
-      +(c.kind!=='files'?`<button class="x${kept?' on':''}" data-snip="${c.id}" title="${esc(textCopy(kept?'Saved as a snippet':'Save as a snippet'))}">${ICON.star}</button>`:'')
+      +(c.kind!=='files'?`<button class="x${kept?' on':''}" data-snip="${c.id}" title="${esc(textCopy(kept?'Remove from snippets':'Save as a snippet'))}">${ICON.star}</button>`:'')
       +`<button class="x${c.pinned?' on':''}" data-pin="${c.id}" title="${esc(textCopy(c.pinned?'Unpin':'Pin'))}">${ICON.pin}</button>`
       +`<button class="x" data-remove="${c.id}" title="${esc(textCopy('Remove'))}">✕</button></div>`;
   }
@@ -2831,7 +2831,14 @@ card.addEventListener('click',e=>{
   e.stopPropagation();
   const d=el.dataset;
   if(d.tab!=null){ clipTab=d.tab; card.dataset.view=''; renderCard(); armWatchdog(); return; }
-  if(d.snip!=null){ invoke('clipboard_save_snippet',{id:Number(d.snip)}).then(v=>{ snippets=Array.isArray(v)?v:snippets; flashStatus(textCopy('Saved as a snippet')); }).catch(err=>notice('clipboard_save_snippet failed: '+err)); return; }
+  if(d.snip!=null){
+    const before=snippets.length;
+    invoke('clipboard_toggle_snippet',{id:Number(d.snip)}).then(v=>{
+      snippets=Array.isArray(v)?v:snippets;
+      flashStatus(textCopy(snippets.length<before?'Removed from snippets':'Saved as a snippet'));
+    }).catch(err=>notice('clipboard_toggle_snippet failed: '+err));
+    return;
+  }
   if(d.snippet!=null){ copySnippet(Number(d.snippet)); return; }
   if(d.pin!=null){ invoke('clipboard_pin',{id:Number(d.pin)}).catch(err=>notice('clipboard_pin failed: '+err)); return; }
   if(d.remove!=null){ invoke('clipboard_remove',{id:Number(d.remove)}).catch(err=>notice('clipboard_remove failed: '+err)); return; }
@@ -2848,7 +2855,6 @@ card.addEventListener('click',e=>{
   if(d.minutes!=null){ setTimerMinutes(Number(d.minutes)); return; }
   const act=d.act;
   if(act==='clear') invoke('clipboard_clear').catch(err=>notice('clipboard_clear failed: '+err));
-  else if(act==='plain') invoke('clipboard_strip_formatting').then(done=>flashStatus(textCopy(done?'The clipboard is plain text now':'Nothing to change'))).catch(err=>notice('clipboard_strip_formatting failed: '+err));
   else if(act==='vshare') invoke('vault_share',{ids:[]}).catch(err=>notice(textCopy('Share: ')+err));
   else if(act==='vzip') invoke('vault_zip',{ids:[]}).catch(err=>notice(textCopy('Zip: ')+err));
   else if(act==='vclear') invoke('vault_clear').catch(err=>notice('vault_clear failed: '+err));

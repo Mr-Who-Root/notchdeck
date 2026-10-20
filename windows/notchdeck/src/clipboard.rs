@@ -199,6 +199,18 @@ impl Snippets {
         self.list.retain(|s| s.id != id);
     }
 
+    /// Saves the text as a snippet, or removes the snippet that already has it. Returns whether it
+    /// is saved now.
+    pub fn toggle_text(&mut self, text: &str) -> Result<bool, String> {
+        let text: String = text.chars().take(MAX_TEXT).collect();
+        if let Some(id) = self.list.iter().find(|s| s.text == text).map(|s| s.id) {
+            self.remove(id);
+            return Ok(false);
+        }
+        self.save(None, "", &text)?;
+        Ok(true)
+    }
+
     pub fn get(&self, id: u64) -> Option<&Snippet> {
         self.list.iter().find(|s| s.id == id)
     }
@@ -337,17 +349,6 @@ pub fn clipboard_search(query: String) -> Vec<ClipView> {
     history().get_or_insert_with(load).search(&query)
 }
 
-/// Rewrites formatted text on the clipboard as the same text, plain. Nothing to do is not a failure.
-#[tauri::command]
-pub fn clipboard_strip_formatting() -> Result<bool, String> {
-    let Some((ClipKind::Text | ClipKind::Link, text)) = platform::read() else {
-        return Ok(false);
-    };
-    platform::write(&Clip { id: 0, kind: ClipKind::Text, text, pinned: false, at: 0 })?;
-    SEEN.store(platform::sequence(), Ordering::SeqCst);
-    Ok(true)
-}
-
 fn snippets() -> std::sync::MutexGuard<'static, Option<Snippets>> {
     SNIPPETS.lock().unwrap_or_else(|e| e.into_inner())
 }
@@ -406,9 +407,9 @@ pub fn snippet_delete(app: AppHandle, id: u64) -> Vec<Snippet> {
     s.list().to_vec()
 }
 
-/// A clip from the history, kept as a snippet (the star on its row).
+/// The star on a clip's row: keeps the clip as a snippet, or — already kept — takes it back out.
 #[tauri::command]
-pub fn clipboard_save_snippet(app: AppHandle, id: u64) -> Result<Vec<Snippet>, String> {
+pub fn clipboard_toggle_snippet(app: AppHandle, id: u64) -> Result<Vec<Snippet>, String> {
     let text = {
         let mut guard = history();
         let h = guard.get_or_insert_with(load);
@@ -418,7 +419,11 @@ pub fn clipboard_save_snippet(app: AppHandle, id: u64) -> Result<Vec<Snippet>, S
         }
         clip.text.clone()
     };
-    snippet_save(app, None, String::new(), text)
+    let mut guard = snippets();
+    let s = guard.get_or_insert_with(load_snippets);
+    s.toggle_text(&text)?;
+    snippets_changed(&app, s);
+    Ok(s.list().to_vec())
 }
 
 /// Puts a snippet on the clipboard, as plain text. Not recorded as a new clip: it is not one.
@@ -838,6 +843,16 @@ mod tests {
         assert_eq!(s.list().len(), 1);
         let c = s.save(None, "", "new").unwrap();
         assert!(c > b, "ids are not reused");
+    }
+
+    #[test]
+    fn the_star_saves_a_snippet_and_takes_it_back_out() {
+        let mut s = super::Snippets::default();
+        assert_eq!(s.toggle_text("ssh demo@host"), Ok(true));
+        assert_eq!(s.list().len(), 1);
+        assert_eq!(s.toggle_text("ssh demo@host"), Ok(false));
+        assert!(s.list().is_empty());
+        assert!(s.toggle_text("   ").is_err());
     }
 
     #[test]

@@ -348,7 +348,6 @@ private struct ClipboardCard: View {
     @ObservedObject var pointer: DeckPointer
     @State private var tab: Tab = .recent
     @State private var query = ""
-    @State private var strippedAt: Date?
 
     var body: some View {
         let items = tab == .recent
@@ -394,8 +393,6 @@ private struct ClipboardCard: View {
             Spacer().frame(height: NotchLayout.headerToBlock)
             SearchRow(query: $query,
                       prompt: tab == .recent ? L10n.t("Search clips") : L10n.t("Search snippets"),
-                      justStripped: strippedAt.map { Date().timeIntervalSince($0) < 1.5 } ?? false,
-                      onStrip: strip,
                       onSubmit: copyFirstMatch)
                 .frame(height: DeckLayout.searchHeight)
             Spacer().frame(height: DeckLayout.searchToList)
@@ -416,7 +413,7 @@ private struct ClipboardCard: View {
                 ClipRow(item: item, copied: monitor.lastCopiedID == item.id,
                         saved: savable && snippets.contains(text: item.text),
                         onCopy: { monitor.copy(item) },
-                        onSave: savable ? { snippets.add(text: item.text) } : nil,
+                        onSave: savable ? { snippets.toggle(text: item.text) } : nil,
                         onPin: { monitor.togglePin(item) },
                         onRemove: { monitor.remove(item) })
                     .frame(height: DeckLayout.clipboardRowHeight)
@@ -425,7 +422,7 @@ private struct ClipboardCard: View {
             // rather than standing there blank.
             if items.count < DeckLayout.clipboardRows - 1, query.isEmpty {
                 Spacer().frame(height: NotchLayout.blockSpacing)
-                CardNote(text: L10n.t("Click a clip to copy it again. Hover a long one to read all of it. ☆ saves it as a snippet."))
+                CardNote(text: L10n.t("Click a clip to copy it again. Hover a long one to read all of it. ☆ keeps it as a snippet."))
             }
         }
     }
@@ -447,10 +444,6 @@ private struct ClipboardCard: View {
                     .frame(height: DeckLayout.clipboardRowHeight)
             }
         }
-    }
-
-    private func strip() {
-        if monitor.stripFormatting() { strippedAt = Date() }
     }
 
     /// Return copies the first match, so search, Return, paste is all keyboard.
@@ -494,8 +487,7 @@ private struct TabSwitch: View {
     }
 }
 
-/// The search field, and the button that makes what is on the clipboard
-/// plain text.
+/// The search field.
 ///
 /// The notch never takes the keyboard on its own — glancing at it must not
 /// steal typing from the app you are in — so the field only becomes one when
@@ -503,72 +495,55 @@ private struct TabSwitch: View {
 private struct SearchRow: View {
     @Binding var query: String
     let prompt: String
-    let justStripped: Bool
-    let onStrip: () -> Void
     let onSubmit: () -> Void
     @FocusState private var focused: Bool
     @Environment(\.notchdeckHeadlessGlass) private var headless
     @Environment(\.deckAction) private var deckAction
     @Environment(\.tooltipSecondaryInk) private var secondaryInk
-    @Environment(\.notchdeckAccentColor) private var accentColor
 
     var body: some View {
-        HStack(spacing: Design.px(10)) {
-            HStack(spacing: Design.px(8)) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(secondaryInk)
-                if headless {
-                    // `ImageRenderer` cannot draw a text field.
-                    Text(prompt).foregroundStyle(secondaryInk)
-                    Spacer(minLength: 0)
-                } else {
-                    TextField("", text: $query, prompt: Text(prompt).foregroundStyle(secondaryInk))
-                        .textFieldStyle(.plain)
-                        .font(Typography.cardBody)
-                        .foregroundStyle(Palette.textPrimary)
-                        .focused($focused)
-                        .onSubmit(onSubmit)
-                        .onExitCommand {
-                            query = ""
-                            focused = false
-                            deckAction(.endTyping, .zero)
-                        }
-                }
-                if !query.isEmpty {
-                    Button { query = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(secondaryInk)
+        HStack(spacing: Design.px(8)) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(secondaryInk)
+            if headless {
+                // `ImageRenderer` cannot draw a text field.
+                Text(prompt).foregroundStyle(secondaryInk)
+                Spacer(minLength: 0)
+            } else {
+                TextField("", text: $query, prompt: Text(prompt).foregroundStyle(secondaryInk))
+                    .textFieldStyle(.plain)
+                    .font(Typography.cardBody)
+                    .foregroundStyle(Palette.textPrimary)
+                    .focused($focused)
+                    .onSubmit(onSubmit)
+                    .onExitCommand {
+                        query = ""
+                        focused = false
+                        deckAction(.endTyping, .zero)
                     }
-                    .buttonStyle(.plain)
-                    .help(L10n.t("Clear the search"))
-                }
             }
-            .font(Typography.cardBody)
-            .padding(.horizontal, Design.px(14))
-            .frame(maxHeight: .infinity)
-            .background(Capsule().fill(Palette.barTrack))
-            .overlay {
-                // Until it has the keyboard, a click on the field asks for it.
-                if !focused {
-                    Color.clear
-                        .contentShape(Capsule())
-                        .onTapGesture {
-                            deckAction(.beginTyping, .zero)
-                            DispatchQueue.main.async { focused = true }
-                        }
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(secondaryInk)
                 }
+                .buttonStyle(.plain)
+                .help(L10n.t("Clear the search"))
             }
-
-            Button(action: onStrip) {
-                Image(systemName: justStripped ? "checkmark" : "textformat")
-                    .font(.system(size: Design.px(26), weight: .semibold))
-                    .foregroundStyle(justStripped ? accentColor : Palette.textPrimary)
-                    .frame(width: Design.px(56))
-                    .frame(maxHeight: .infinity)
-                    .background(Capsule().fill(Palette.barTrack))
+        }
+        .font(Typography.cardBody)
+        .padding(.horizontal, Design.px(14))
+        .frame(maxHeight: .infinity)
+        .background(Capsule().fill(Palette.barTrack))
+        .overlay {
+            // Until it has the keyboard, a click on the field asks for it.
+            if !focused {
+                Color.clear
                     .contentShape(Capsule())
+                    .onTapGesture {
+                        deckAction(.beginTyping, .zero)
+                        DispatchQueue.main.async { focused = true }
+                    }
             }
-            .buttonStyle(.plain)
-            .help(L10n.t("Make what's on the clipboard plain text — no fonts, colours or links"))
         }
     }
 }
@@ -778,8 +753,7 @@ private struct ClipRow: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .disabled(saved)
-                    .help(saved ? L10n.t("Saved as a snippet") : L10n.t("Save as snippet"))
+                    .help(saved ? L10n.t("Remove from snippets") : L10n.t("Save as snippet"))
                 } else {
                     Color.clear.frame(width: Self.starWidth, height: DeckLayout.clipboardRowHeight)
                 }

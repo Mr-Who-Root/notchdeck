@@ -149,8 +149,8 @@ Cells after the rings, each with its own card, switched on and off in **Settings
   front. With **Remember clipboard history** on, clips are kept in `clipboard-history.json` in the
   data folder; switched off, that file is deleted. The card searches the history (the notch takes
   the keyboard only while its search box is in use), keeps **snippets** (`snippets.json`; star a
-  clip, or add them in Settings), and has a **Plain text** button; **Always strip formatting** does
-  that to every copy.
+  clip — again to take it back out — or add them in Settings); **Always strip formatting** turns
+  every copy of formatted text into plain text.
 - **Focus Timer** runs in the notch page itself; Rust keeps its lengths, plays the system sound when
   a phase ends, and (`focus_timer.rs`) runs **cycles** of focus and short and long breaks and keeps
   the day's focused time and the week before it in `focus-stats.json`. Windows has no API an app may

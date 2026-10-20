@@ -591,3 +591,157 @@ final class LiveCardRenderTests: XCTestCase {
         }
     }
 }
+
+// MARK: - Settings
+
+@MainActor
+final class DeckPreferencesTests: XCTestCase {
+    private var domain = ""
+    private var defaults: UserDefaults!
+
+    override func setUp() {
+        domain = "DeckPreferencesTests.\(UUID().uuidString)"
+        defaults = UserDefaults(suiteName: domain)
+    }
+
+    override func tearDown() {
+        defaults.removePersistentDomain(forName: domain)
+    }
+
+    func testAFreshInstallHasEveryCellAndSensibleDefaults() {
+        let preferences = Preferences(defaults: defaults)
+        XCTAssertEqual(preferences.deckTools, [.nowPlaying, .meeting, .clipboard, .vault, .timer])
+        XCTAssertFalse(preferences.vaultKeepsCopies)
+        XCTAssertEqual(preferences.vaultClearAfter, .never)
+        XCTAssertEqual(preferences.meetingHeadsUpMinutes, 5)
+        XCTAssertTrue(preferences.liveCharging)
+        XCTAssertTrue(preferences.liveDownloads)
+        XCTAssertFalse(preferences.focusCycles)
+        XCTAssertEqual(preferences.focusShortBreakMinutes, 5)
+        XCTAssertEqual(preferences.focusLongBreakMinutes, 15)
+        XCTAssertEqual(preferences.focusLongBreakEvery, 4)
+        XCTAssertTrue(preferences.focusAutoStartsNext)
+        XCTAssertEqual(preferences.focusStartShortcut, "")
+        XCTAssertEqual(preferences.focusEndShortcut, "")
+        XCTAssertFalse(preferences.clipboardAlwaysPlainText)
+    }
+
+    func testEverySettingIsKeptAcrossALaunch() {
+        let preferences = Preferences(defaults: defaults)
+        preferences.showsVault = false
+        preferences.showsMeeting = false
+        preferences.vaultKeepsCopies = true
+        preferences.vaultClearAfter = .day
+        preferences.meetingHeadsUpMinutes = 10
+        preferences.liveCharging = false
+        preferences.liveDownloads = false
+        preferences.focusCycles = true
+        preferences.focusShortBreakMinutes = 7
+        preferences.focusLongBreakMinutes = 20
+        preferences.focusLongBreakEvery = 3
+        preferences.focusAutoStartsNext = false
+        preferences.focusStartShortcut = "Focus On"
+        preferences.focusEndShortcut = "Focus Off"
+        preferences.clipboardAlwaysPlainText = true
+
+        let again = Preferences(defaults: defaults)
+        XCTAssertEqual(again.deckTools, [.nowPlaying, .clipboard, .timer])
+        XCTAssertTrue(again.vaultKeepsCopies)
+        XCTAssertEqual(again.vaultClearAfter, .day)
+        XCTAssertEqual(again.meetingHeadsUpMinutes, 10)
+        XCTAssertFalse(again.liveCharging)
+        XCTAssertFalse(again.liveDownloads)
+        XCTAssertTrue(again.focusCycles)
+        XCTAssertEqual(again.focusShortBreakMinutes, 7)
+        XCTAssertEqual(again.focusLongBreakMinutes, 20)
+        XCTAssertEqual(again.focusLongBreakEvery, 3)
+        XCTAssertFalse(again.focusAutoStartsNext)
+        XCTAssertEqual(again.focusStartShortcut, "Focus On")
+        XCTAssertEqual(again.focusEndShortcut, "Focus Off")
+        XCTAssertTrue(again.clipboardAlwaysPlainText)
+    }
+
+    func testOutOfRangeValuesAreBroughtBackIn() {
+        defaults.set(99, forKey: "meetingHeadsUpMinutes")
+        defaults.set(0, forKey: "focusShortBreakMinutes")
+        defaults.set(500, forKey: "focusLongBreakMinutes")
+        defaults.set(1, forKey: "focusLongBreakEvery")
+        defaults.set("fortnight", forKey: "vaultClearAfter")
+        let preferences = Preferences(defaults: defaults)
+        XCTAssertEqual(preferences.meetingHeadsUpMinutes, 5)
+        XCTAssertEqual(preferences.focusShortBreakMinutes, 1)
+        XCTAssertEqual(preferences.focusLongBreakMinutes, 90)
+        XCTAssertEqual(preferences.focusLongBreakEvery, 2)
+        XCTAssertEqual(preferences.vaultClearAfter, .never)
+    }
+
+    func testClearAfterIntervals() {
+        XCTAssertNil(VaultClearAfter.never.interval)
+        XCTAssertEqual(VaultClearAfter.hour.interval, 3600)
+        XCTAssertEqual(VaultClearAfter.day.interval, 86_400)
+        XCTAssertEqual(VaultClearAfter.week.interval, 604_800)
+    }
+
+    func testTheStarTakesASnippetBackOut() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("snippets-\(UUID().uuidString).json")
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        let store = SnippetStore(storeURL: url)
+        store.toggle(text: "ssh demo@host")
+        XCTAssertTrue(store.contains(text: "ssh demo@host"))
+        store.toggle(text: "ssh demo@host")
+        XCTAssertFalse(store.contains(text: "ssh demo@host"))
+        XCTAssertTrue(SnippetStore(storeURL: url).snippets.isEmpty)
+    }
+}
+
+/// Settings → Deck drawn whole, in a real window so the native controls draw:
+/// set `DECK_RENDER_PATH` to look at it.
+@MainActor
+final class DeckSettingsRenderTests: XCTestCase {
+    func testEveryPaneRenders() async throws {
+        for section in ["accounts", "appearance", "notifications", "costs", "general"] {
+            try await render(section: section, height: 2_400)
+        }
+    }
+
+    func testTheDeckPaneRendersEverySection() async throws {
+        try await render(section: "deck", height: 2_900)
+    }
+
+    private func render(section: String, height: CGFloat) async throws {
+        let domain = "DeckSettingsRenderTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        // The pane comes up on the section last looked at, kept in the app's
+        // own defaults: shown Deck here, and put back as it was.
+        let previous = UserDefaults.standard.string(forKey: SettingsView.sectionKey)
+        UserDefaults.standard.set(section, forKey: SettingsView.sectionKey)
+        defer { UserDefaults.standard.set(previous, forKey: SettingsView.sectionKey) }
+
+        let preferences = Preferences(defaults: defaults)
+        preferences.focusCycles = true
+        let store = UsageStore(providers: [], archive: UsageArchive(defaults: defaults), disconnected: [])
+        let content = SettingsView(preferences: preferences, providers: { [] },
+            signOut: { store.signOut(providerID: $0) }, signIn: { store.signIn(providerID: $0) },
+            switchAccount: { _ in false }, retry: { store.refresh(providerID: $0) },
+            resetPosition: {}, quit: {}, updater: Updater(), usageStore: store)
+            .frame(width: SettingsView.width, height: height)
+            .background(Color(nsColor: .windowBackgroundColor))
+        let hosting = NSHostingView(rootView: content)
+        let window = NSWindow(contentRect: NSRect(x: -10_000, y: -10_000, width: SettingsView.width, height: height),
+                              styleMask: [.borderless], backing: .buffered, defer: false)
+        window.contentView = hosting
+        window.isReleasedWhenClosed = false
+        window.orderFront(nil)
+        defer { window.close() }
+        try await Task.sleep(nanoseconds: 900_000_000)
+        hosting.layoutSubtreeIfNeeded()
+        let rep = try XCTUnwrap(hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds))
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+        XCTAssertGreaterThan(rep.pixelsWide, 0)
+        if let directory = ProcessInfo.processInfo.environment["DECK_RENDER_PATH"] {
+            let png = try XCTUnwrap(rep.representation(using: .png, properties: [:]))
+            try png.write(to: URL(fileURLWithPath: directory).appendingPathComponent("settings-\(section).png"))
+        }
+    }
+}
