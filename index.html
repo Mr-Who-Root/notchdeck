@@ -6,7 +6,7 @@
 <title>NotchDeck</title>
 <meta name="description" content="A small black notch on your screen edge: how much of each AI coding assistant's usage limit you have left, whether it is still working — plus Now Playing, clipboard history and a focus timer. For macOS and Windows.">
 <meta property="og:title" content="NotchDeck">
-<meta property="og:description" content="AI coding-assistant usage rings, Now Playing, clipboard history and a focus timer — in a notch on your screen edge. macOS and Windows.">
+<meta property="og:description" content="AI coding-assistant usage rings, Now Playing, your next meeting, clipboard history, a file vault and a focus timer — in a notch on your screen edge. macOS and Windows.">
 <meta property="og:image" content="https://mr-who-root.github.io/notchdeck/assets/og.jpg">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
@@ -42,7 +42,7 @@
     font:16px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;
     -webkit-font-smoothing:antialiased;overflow-x:hidden}
   a{color:inherit}
-  img{max-width:100%;display:block}
+  img{max-width:100%;height:auto;display:block}
   .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
 
   /* ---- top bar */
@@ -90,8 +90,10 @@
 
   .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr))}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column}
-  .card .pic{background:#5a5a5a;border-bottom:1px solid var(--line)}
-  .card .pic img{width:100%;aspect-ratio:1100/640;object-fit:cover}
+  .card .pic{background:#595959;border-bottom:1px solid var(--line)}
+  /* Whole, never cropped: the cards are different heights, and the grey they
+     are rendered on fills the rest. */
+  .card .pic img{width:100%;aspect-ratio:1100/690;object-fit:contain;object-position:top}
   .card .body{padding:20px 22px 24px}
   .card h3{margin:0 0 6px;font-size:19px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
   .dot{width:10px;height:10px;border-radius:50%;flex:none}
@@ -155,7 +157,8 @@
       <h1>Your AI limits,<br><span class="grad">and a deck of tools,</span> in the notch.</h1>
       <p class="lede">A small black notch on your screen edge that shows how much of each coding assistant's
         usage limit you have burned — and whether it is still working, done, or waiting on you —
-        with <b>Now Playing</b>, <b>clipboard history</b> and a <b>focus timer</b> right beside the rings.</p>
+        with <b>Now Playing</b>, your <b>next meeting</b>, <b>clipboard history</b>, a <b>vault</b> for files and a
+        <b>focus timer</b> right beside the rings.</p>
       <div class="cta">
         <a class="btn primary" id="dl-mac" href="https://github.com/Mr-Who-Root/notchdeck/releases/latest/download/NotchDeck.dmg">
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.19-1.73-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.14.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.33-3.54ZM14.18 6.13c.61-.74 1.02-1.76.91-2.78-.88.04-1.94.59-2.57 1.32-.56.65-1.06 1.69-.93 2.69.98.08 1.98-.5 2.59-1.23Z"/></svg>
@@ -167,14 +170,14 @@
         </a>
       </div>
       <p class="meta"><span id="release-line">Free and open source · MIT license</span> · <a href="https://github.com/Mr-Who-Root/notchdeck/releases">All releases</a></p>
-      <div class="shot"><img src="assets/hero.jpg" alt="The NotchDeck notch on the right edge of a Mac screen with its Claude usage card open" width="1400" height="1400" loading="eager"></div>
+      <div class="shot"><img src="assets/hero.jpg" alt="The NotchDeck notch open at the top of a Mac screen — usage rings, Now Playing, the next meeting, the clipboard, the vault and the focus timer — with the Vault card showing three files" width="2400" height="1180" loading="eager"></div>
     </div>
   </div>
 
   <section id="deck">
     <div class="wrap">
       <p class="eyebrow">The deck</p>
-      <h2>Three everyday tools, one hover away.</h2>
+      <h2>Six everyday tools, one hover away.</h2>
       <p class="sub">They ride the notch after the usage rings and behave exactly like them — they fold away, slide
         along the edge and follow it round all four sides of the screen. Switch any of them off and it stops reading anything at all.</p>
       <div class="grid">
@@ -182,23 +185,48 @@
           <div class="pic"><img src="assets/deck-nowPlaying.png" alt="The Now Playing card in the notch" loading="lazy"></div>
           <div class="body">
             <h3><span class="dot" style="background:var(--blue)"></span>Now Playing</h3>
-            <p>Whatever the system says is playing — Music, Spotify, podcasts, a browser tab — with artwork, a scrubber you
-              can drag, and previous / play-pause / next. Click the cell itself to play or pause.</p>
+            <p>Whatever is playing — Music, Spotify, podcasts, a browser tab — with artwork, a scrubber, previous /
+              play-pause / next, the volume, and a switch between speakers, headphones and AirPods.</p>
           </div>
         </article>
         <article class="card">
           <div class="pic"><img src="assets/deck-clipboard.png" alt="The Clipboard history card in the notch" loading="lazy"></div>
           <div class="body">
             <h3><span class="dot" style="background:var(--green)"></span>Clipboard history</h3>
-            <p>The text, links, files and images you copied, most recent first. Click a clip to copy it again, pin the ones you
-              reuse, and hover a long one to read it in full.</p>
+            <p>The text, links, files and images you copied. Search them, click one to copy it again, pin the ones you
+              reuse, and star them as snippets you can paste any time.</p>
+          </div>
+        </article>
+        <article class="card">
+          <div class="pic"><img src="assets/deck-meeting.png" alt="The Next Meeting card in the notch, with a Join button" loading="lazy"></div>
+          <div class="body">
+            <h3><span class="dot" style="background:#a78bfa"></span>Next meeting</h3>
+            <p>A ring that fills as your next meeting gets close, a <b>Join</b> button for Zoom, Meet, Teams, Webex and
+              FaceTime links, and a heads-up a few minutes before. From your Mac's calendars, or an iCal address on Windows.</p>
+          </div>
+        </article>
+        <article class="card">
+          <div class="pic"><img src="assets/deck-vault.png" alt="The Vault card in the notch holding three files" loading="lazy"></div>
+          <div class="body">
+            <h3><span class="dot" style="background:#38bdf8"></span>Vault</h3>
+            <p>Drag files onto the notch to hold them, then drag them out to copy them anywhere — hold ⌘ to move. Share,
+              zip, or let it clear itself. It points to your files, so it takes no space.</p>
           </div>
         </article>
         <article class="card">
           <div class="pic"><img src="assets/deck-timer.png" alt="The Focus Timer card in the notch" loading="lazy"></div>
           <div class="body">
             <h3><span class="dot" style="background:var(--amber)"></span>Focus timer</h3>
-            <p>Pick 5, 15, 25 or 50 minutes, click the cell to start or pause, and the notch opens with a chime when time is up.</p>
+            <p>Pick a length and click the cell to start. Optional short and long breaks, today's total and the last seven
+              days, and the notch opens with a chime when time is up.</p>
+          </div>
+        </article>
+        <article class="card">
+          <div class="pic"><img src="assets/deck-transfers.png" alt="The Downloads card in the notch with two downloads in progress" loading="lazy"></div>
+          <div class="body">
+            <h3><span class="dot" style="background:#f472b6"></span>Live status</h3>
+            <p>Downloads and AirDrop get a cell while they run and a card as they land. Plug in the charger and the notch
+              shows the battery filling.</p>
           </div>
         </article>
       </div>
@@ -216,6 +244,7 @@
           <li><b>Stays on your machine.</b> History lives in one file readable only by your user; turn off “Remember history” and it is deleted.</li>
           <li><b>Images never touch disk.</b> They are kept in memory for the session only.</li>
           <li><b>Long clips, in full.</b> Hover a clip its row cuts short and the whole thing appears, with its length.</li>
+          <li><b>Search and snippets.</b> Type to find any clip; star the ones you paste often and they stay as snippets.</li>
         </ul>
       </div>
     </div>
@@ -246,8 +275,10 @@
         <div class="platform">
           <h3><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.19-1.73-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.62 1.11 8.79.73 1.06 1.6 2.25 2.75 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.71.71 2.88.69 1.19-.02 1.94-1.08 2.67-2.14.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.33-3.54ZM14.18 6.13c.61-.74 1.02-1.76.91-2.78-.88.04-1.94.59-2.57 1.32-.56.65-1.06 1.69-.93 2.69.98.08 1.98-.5 2.59-1.23Z"/></svg>macOS</h3>
           <p class="req">macOS 15 or later · Apple Silicon and Intel</p>
+          <p class="req">With Homebrew:</p>
+          <pre><code>brew install --cask mr-who-root/notchdeck/notchdeck</code></pre>
           <ol>
-            <li>Download <b>NotchDeck.dmg</b> and drag NotchDeck to Applications.</li>
+            <li>Or download <b>NotchDeck.dmg</b> and drag NotchDeck to Applications.</li>
             <li>The build is not notarized, so clear the download quarantine once:
               <pre><code>xattr -dr com.apple.quarantine /Applications/NotchDeck.app</code></pre></li>
             <li>Open NotchDeck. If macOS says it is “damaged”, that is the quarantine flag — run the command above.</li>
