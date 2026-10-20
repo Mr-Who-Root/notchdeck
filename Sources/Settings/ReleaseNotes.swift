@@ -32,6 +32,36 @@ enum ReleaseNotes {
     static var all: [ReleaseNote] {
         [
             ReleaseNote(
+                version: "1.25.0",
+                headline: L10n.t("A vault for files, your next meeting, live downloads and charging, focus breaks, clipboard search and snippets, and volume control."),
+                changes: [
+                    ReleaseNote.Change(
+                        title: L10n.t("Vault"),
+                        detail: L10n.t("Drag files onto the notch to hold them, then drag them out to copy them anywhere — hold ⌘ to move. Share them, zip them, or let the vault clear itself.")
+                    ),
+                    ReleaseNote.Change(
+                        title: L10n.t("Next meeting"),
+                        detail: L10n.t("Your next event from the Calendar app, a heads-up before it starts, and a Join button for Zoom, Meet, Teams and Webex links.")
+                    ),
+                    ReleaseNote.Change(
+                        title: L10n.t("Live status"),
+                        detail: L10n.t("Downloads and AirDrop get a cell while they run and a card as they land; plugging in shows the battery charging.")
+                    ),
+                    ReleaseNote.Change(
+                        title: L10n.t("Focus breaks"),
+                        detail: L10n.t("Optional short and long breaks between sessions, a daily total with the last seven days, and Shortcuts to switch Do Not Disturb.")
+                    ),
+                    ReleaseNote.Change(
+                        title: L10n.t("Clipboard search and snippets"),
+                        detail: L10n.t("Search your clips, save the ones you reuse as snippets, and turn rich text into plain text.")
+                    ),
+                    ReleaseNote.Change(
+                        title: L10n.t("Volume and output"),
+                        detail: L10n.t("The Now Playing card has the system volume, mute, and a switch for speakers, headphones and AirPods.")
+                    ),
+                ]
+            ),
+            ReleaseNote(
                 version: "1.24.1",
                 headline: L10n.t("On a Mac with a notch, the top edge now drops down out of it."),
                 changes: [

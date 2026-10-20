@@ -15,8 +15,11 @@ struct DeckCard: View {
                 Group {
                     switch tool {
                     case .nowPlaying: NowPlayingCard()
+                    case .meeting:    MeetingCard()
                     case .clipboard:  ClipboardCard(pointer: pointer)
+                    case .vault:      VaultCard()
                     case .timer:      FocusTimerCard()
+                    case .transfers:  TransfersCard()
                     }
                 }
                 .id(tool)
@@ -29,7 +32,7 @@ struct DeckCard: View {
 
 // MARK: - Pieces the cards share
 
-private struct CardTitle: View {
+struct CardTitle: View {
     let text: String
     var body: some View {
         Text(text)
@@ -40,7 +43,7 @@ private struct CardTitle: View {
     }
 }
 
-private struct CardNote: View {
+struct CardNote: View {
     let text: String
     @Environment(\.tooltipSecondaryInk) private var secondaryInk
     var body: some View {
@@ -52,7 +55,7 @@ private struct CardNote: View {
 }
 
 /// A plain button drawn as a symbol, with a target bigger than its glyph.
-private struct SymbolButton: View {
+struct SymbolButton: View {
     let symbol: String
     var size: CGFloat = Design.px(34)
     var prominent = false
@@ -74,7 +77,7 @@ private struct SymbolButton: View {
 }
 
 /// A thin bar: a track and a fill, the fill in the accent colour.
-private struct DeckBar: View {
+struct DeckBar: View {
     let fraction: Double
     @Environment(\.notchdeckAccentColor) private var accentColor
 
@@ -91,7 +94,7 @@ private struct DeckBar: View {
 }
 
 /// A capsule button with a label, the timer's and the clipboard's.
-private struct PillButton: View {
+struct PillButton: View {
     let title: String
     var selected = false
     var prominent = false
@@ -130,16 +133,22 @@ private struct NowPlayingCard: View {
     @Environment(\.tooltipSecondaryInk) private var secondaryInk
 
     var body: some View {
-        if let track = monitor.track {
-            playing(track)
-        } else {
-            VStack(alignment: .leading, spacing: NotchLayout.headerToBlock) {
-                CardTitle(text: DeckTool.nowPlaying.title)
-                CardNote(text: monitor.isAvailable
-                         ? L10n.t("Nothing is playing. Start something in Music, Spotify, a podcast app or a browser and it shows up here.")
-                         : L10n.t("This Mac isn't sharing what's playing right now."))
+        VStack(alignment: .leading, spacing: 0) {
+            if let track = monitor.track {
+                playing(track)
+            } else {
+                VStack(alignment: .leading, spacing: NotchLayout.headerToBlock) {
+                    CardTitle(text: DeckTool.nowPlaying.title)
+                    CardNote(text: monitor.isAvailable
+                             ? L10n.t("Nothing is playing. Start something in Music, Spotify, a podcast app or a browser and it shows up here.")
+                             : L10n.t("This Mac isn't sharing what's playing right now."))
+                }
+                Spacer(minLength: 0)
             }
+            VolumeRow()
+                .frame(height: DeckLayout.volumeRowHeight)
         }
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     private func playing(_ track: NowPlayingMonitor.Track) -> some View {
@@ -259,22 +268,100 @@ private struct Scrubber: View {
     }
 }
 
+/// The system volume and the sound output, under the transport.
+struct VolumeRow: View {
+    @ObservedObject private var audio = AudioOutput.shared
+    @Environment(\.deckAction) private var deckAction
+    @Environment(\.tooltipSecondaryInk) private var secondaryInk
+    @State private var deviceFrame: CGRect = .zero
+
+    var body: some View {
+        HStack(spacing: Design.px(12)) {
+            Button { audio.toggleMute() } label: {
+                Image(systemName: audio.volumeSymbol)
+                    .font(.system(size: Design.px(28), weight: .semibold))
+                    .foregroundStyle(audio.volume == nil ? secondaryInk : Palette.textPrimary)
+                    .frame(width: Design.px(50), height: DeckLayout.volumeRowHeight)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(audio.volume == nil)
+            .help(audio.isMuted ? L10n.t("Unmute") : L10n.t("Mute"))
+
+            if let volume = audio.volume {
+                LevelSlider(value: audio.isMuted ? 0 : Double(volume)) { audio.setVolume(Float($0)) }
+                    .help(L10n.t("Volume"))
+            } else {
+                Text(L10n.t("No volume control on this output"))
+                    .font(Typography.cardBody)
+                    .foregroundStyle(secondaryInk)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+
+            Button { deckAction(.outputDevices, deviceFrame) } label: {
+                Image(systemName: audio.current?.symbol ?? "speaker.wave.2")
+                    .font(.system(size: Design.px(28), weight: .semibold))
+                    .foregroundStyle(Palette.textPrimary)
+                    .frame(width: Design.px(50), height: DeckLayout.volumeRowHeight)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .panelFrame($deviceFrame)
+            .help(audio.current.map { L10n.t("Sound output: \($0.name)") } ?? L10n.t("Sound output"))
+        }
+    }
+}
+
+/// A bar that follows a click or a drag at once — the volume's.
+struct LevelSlider: View {
+    let value: Double
+    let onChange: (Double) -> Void
+    @State private var dragging: Double?
+
+    var body: some View {
+        GeometryReader { proxy in
+            DeckBar(fraction: dragging ?? value)
+                .frame(maxHeight: .infinity, alignment: .center)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { drag in
+                            guard proxy.size.width > 0 else { return }
+                            let fraction = min(max(drag.location.x / proxy.size.width, 0), 1)
+                            dragging = fraction
+                            onChange(fraction)
+                        }
+                        .onEnded { _ in dragging = nil }
+                )
+        }
+    }
+}
+
 // MARK: - Clipboard
 
 private struct ClipboardCard: View {
+    enum Tab { case recent, snippets }
+
     @ObservedObject private var monitor = ClipboardMonitor.shared
+    @ObservedObject private var snippets = SnippetStore.shared
     @ObservedObject var pointer: DeckPointer
+    @State private var tab: Tab = .recent
+    @State private var query = ""
+    @State private var strippedAt: Date?
 
     var body: some View {
-        let items = Array(monitor.ordered.prefix(DeckLayout.clipboardRows))
-        list(items)
+        let items = tab == .recent
+            ? Array(ClipboardMonitor.filter(monitor.ordered, query: query).prefix(DeckLayout.clipboardRows))
+            : []
+        content(items)
             // Laid out in the same pass as the rows, so the preview is never a
             // frame behind the pointer: the rows are at fixed heights, and the
             // card's place in the panel is read here rather than reported back.
             .overlay(alignment: .topLeading) {
                 GeometryReader { proxy in
                     let origin = proxy.frame(in: .named(DeckPointer.space)).origin
-                    if let location = pointer.location,
+                    if tab == .recent, let location = pointer.location,
                        let peek = ClipPeekLayout(items: items,
                                                  pointer: CGPoint(x: location.x - origin.x,
                                                                   y: location.y - origin.y),
@@ -289,12 +376,13 @@ private struct ClipboardCard: View {
             }
     }
 
-    private func list(_ items: [ClipboardMonitor.Item]) -> some View {
+    private func content(_ items: [ClipboardMonitor.Item]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            HStack(spacing: Design.px(10)) {
                 CardTitle(text: DeckTool.clipboard.title)
                 Spacer(minLength: 0)
-                if monitor.items.contains(where: { !$0.pinned }) {
+                TabSwitch(tab: $tab)
+                if tab == .recent, monitor.items.contains(where: { !$0.pinned }) {
                     Button(L10n.t("Clear")) { monitor.clear() }
                         .buttonStyle(.plain)
                         .font(Typography.cardBody)
@@ -302,27 +390,226 @@ private struct ClipboardCard: View {
                         .help(L10n.t("Forget every clip that isn't pinned"))
                 }
             }
+            .frame(height: NotchLayout.cardTitleLineHeight)
             Spacer().frame(height: NotchLayout.headerToBlock)
-            if items.isEmpty {
-                CardNote(text: monitor.isRunning
-                         ? L10n.t("Copy something and it shows up here. Click a clip to copy it again.")
-                         : L10n.t("Clipboard history is off. Turn it on in Settings → Deck."))
-            } else {
-                ForEach(items) { item in
-                    ClipRow(item: item, copied: monitor.lastCopiedID == item.id,
-                            onCopy: { monitor.copy(item) },
-                            onPin: { monitor.togglePin(item) },
-                            onRemove: { monitor.remove(item) })
-                        .frame(height: DeckLayout.clipboardRowHeight)
-                }
-                // The rows a short history leaves empty say how to use it,
-                // rather than standing there blank.
-                if items.count < DeckLayout.clipboardRows - 1 {
-                    Spacer().frame(height: NotchLayout.blockSpacing)
-                    CardNote(text: L10n.t("Click a clip to copy it again. Hover a long one to read all of it."))
-                }
+            SearchRow(query: $query,
+                      prompt: tab == .recent ? L10n.t("Search clips") : L10n.t("Search snippets"),
+                      justStripped: strippedAt.map { Date().timeIntervalSince($0) < 1.5 } ?? false,
+                      onStrip: strip,
+                      onSubmit: copyFirstMatch)
+                .frame(height: DeckLayout.searchHeight)
+            Spacer().frame(height: DeckLayout.searchToList)
+            if tab == .recent { recent(items) } else { snippetList }
+        }
+    }
+
+    @ViewBuilder private func recent(_ items: [ClipboardMonitor.Item]) -> some View {
+        if items.isEmpty {
+            CardNote(text: !query.isEmpty
+                     ? L10n.t("No clips match “\(query)”.")
+                     : monitor.isRunning
+                     ? L10n.t("Copy something and it shows up here. Click a clip to copy it again.")
+                     : L10n.t("Clipboard history is off. Turn it on in Settings → Deck."))
+        } else {
+            ForEach(items) { item in
+                let savable = item.kind == .text || item.kind == .link
+                ClipRow(item: item, copied: monitor.lastCopiedID == item.id,
+                        saved: savable && snippets.contains(text: item.text),
+                        onCopy: { monitor.copy(item) },
+                        onSave: savable ? { snippets.add(text: item.text) } : nil,
+                        onPin: { monitor.togglePin(item) },
+                        onRemove: { monitor.remove(item) })
+                    .frame(height: DeckLayout.clipboardRowHeight)
+            }
+            // The rows a short history leaves empty say how to use it,
+            // rather than standing there blank.
+            if items.count < DeckLayout.clipboardRows - 1, query.isEmpty {
+                Spacer().frame(height: NotchLayout.blockSpacing)
+                CardNote(text: L10n.t("Click a clip to copy it again. Hover a long one to read all of it. ☆ saves it as a snippet."))
             }
         }
+    }
+
+    @ViewBuilder private var snippetList: some View {
+        let shown = Array(SnippetStore.filter(snippets.snippets, query: query).prefix(DeckLayout.clipboardRows))
+        if shown.isEmpty {
+            CardNote(text: !query.isEmpty
+                     ? L10n.t("No snippets match “\(query)”.")
+                     : L10n.t("Snippets are text you paste often — an address, a sign-off, a command. Click ☆ on a clip to save one, or add them in Settings → Deck."))
+        } else {
+            ForEach(shown) { snippet in
+                SnippetRow(snippet: snippet,
+                           copied: monitor.lastCopiedID != nil
+                               && monitor.items.first?.id == monitor.lastCopiedID
+                               && monitor.items.first?.text == snippet.text,
+                           onCopy: { monitor.copyText(snippet.text) },
+                           onRemove: { snippets.remove(snippet) })
+                    .frame(height: DeckLayout.clipboardRowHeight)
+            }
+        }
+    }
+
+    private func strip() {
+        if monitor.stripFormatting() { strippedAt = Date() }
+    }
+
+    /// Return copies the first match, so search, Return, paste is all keyboard.
+    private func copyFirstMatch() {
+        switch tab {
+        case .recent:
+            if let first = ClipboardMonitor.filter(monitor.ordered, query: query).first { monitor.copy(first) }
+        case .snippets:
+            if let first = SnippetStore.filter(snippets.snippets, query: query).first {
+                monitor.copyText(first.text)
+            }
+        }
+    }
+}
+
+/// Recent | Snippets, as two small capsules.
+private struct TabSwitch: View {
+    @Binding var tab: ClipboardCard.Tab
+    @Environment(\.tooltipSecondaryInk) private var secondaryInk
+
+    var body: some View {
+        HStack(spacing: Design.px(4)) {
+            option(L10n.t("Recent"), .recent)
+            option(L10n.t("Snippets"), .snippets)
+        }
+        .padding(Design.px(3))
+        .background(Capsule().fill(Palette.barTrack))
+    }
+
+    private func option(_ title: String, _ value: ClipboardCard.Tab) -> some View {
+        Button { tab = value } label: {
+            Text(title)
+                .font(Typography.cardBody.weight(tab == value ? .semibold : .regular))
+                .foregroundStyle(tab == value ? Palette.textPrimary : secondaryInk)
+                .padding(.horizontal, Design.px(12))
+                .padding(.vertical, Design.px(2))
+                .background(Capsule().fill(tab == value ? Palette.textPrimary.opacity(0.18) : .clear))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// The search field, and the button that makes what is on the clipboard
+/// plain text.
+///
+/// The notch never takes the keyboard on its own — glancing at it must not
+/// steal typing from the app you are in — so the field only becomes one when
+/// it is clicked, and gives the keyboard back on Escape or when the card goes.
+private struct SearchRow: View {
+    @Binding var query: String
+    let prompt: String
+    let justStripped: Bool
+    let onStrip: () -> Void
+    let onSubmit: () -> Void
+    @FocusState private var focused: Bool
+    @Environment(\.notchdeckHeadlessGlass) private var headless
+    @Environment(\.deckAction) private var deckAction
+    @Environment(\.tooltipSecondaryInk) private var secondaryInk
+    @Environment(\.notchdeckAccentColor) private var accentColor
+
+    var body: some View {
+        HStack(spacing: Design.px(10)) {
+            HStack(spacing: Design.px(8)) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(secondaryInk)
+                if headless {
+                    // `ImageRenderer` cannot draw a text field.
+                    Text(prompt).foregroundStyle(secondaryInk)
+                    Spacer(minLength: 0)
+                } else {
+                    TextField("", text: $query, prompt: Text(prompt).foregroundStyle(secondaryInk))
+                        .textFieldStyle(.plain)
+                        .font(Typography.cardBody)
+                        .foregroundStyle(Palette.textPrimary)
+                        .focused($focused)
+                        .onSubmit(onSubmit)
+                        .onExitCommand {
+                            query = ""
+                            focused = false
+                            deckAction(.endTyping, .zero)
+                        }
+                }
+                if !query.isEmpty {
+                    Button { query = "" } label: {
+                        Image(systemName: "xmark.circle.fill").foregroundStyle(secondaryInk)
+                    }
+                    .buttonStyle(.plain)
+                    .help(L10n.t("Clear the search"))
+                }
+            }
+            .font(Typography.cardBody)
+            .padding(.horizontal, Design.px(14))
+            .frame(maxHeight: .infinity)
+            .background(Capsule().fill(Palette.barTrack))
+            .overlay {
+                // Until it has the keyboard, a click on the field asks for it.
+                if !focused {
+                    Color.clear
+                        .contentShape(Capsule())
+                        .onTapGesture {
+                            deckAction(.beginTyping, .zero)
+                            DispatchQueue.main.async { focused = true }
+                        }
+                }
+            }
+
+            Button(action: onStrip) {
+                Image(systemName: justStripped ? "checkmark" : "textformat")
+                    .font(.system(size: Design.px(26), weight: .semibold))
+                    .foregroundStyle(justStripped ? accentColor : Palette.textPrimary)
+                    .frame(width: Design.px(56))
+                    .frame(maxHeight: .infinity)
+                    .background(Capsule().fill(Palette.barTrack))
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .help(L10n.t("Make what's on the clipboard plain text — no fonts, colours or links"))
+        }
+    }
+}
+
+private struct SnippetRow: View {
+    let snippet: SnippetStore.Snippet
+    let copied: Bool
+    let onCopy: () -> Void
+    let onRemove: () -> Void
+    @Environment(\.notchdeckAccentColor) private var accentColor
+    @Environment(\.tooltipSecondaryInk) private var secondaryInk
+
+    var body: some View {
+        HStack(spacing: ClipRow.spacing) {
+            Image(systemName: "text.quote")
+                .foregroundStyle(secondaryInk)
+                .frame(width: ClipRow.iconWidth)
+            Text(snippet.label)
+                .font(Typography.cardBody)
+                .foregroundStyle(Palette.textPrimary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: ClipRow.spacerMinimum)
+            if copied {
+                Text(L10n.t("Copied"))
+                    .font(Typography.cardBody.weight(.semibold))
+                    .foregroundStyle(accentColor)
+            }
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .foregroundStyle(secondaryInk)
+                    .frame(width: ClipRow.removeWidth, height: DeckLayout.clipboardRowHeight)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(L10n.t("Delete snippet"))
+        }
+        .font(Typography.cardBody)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onCopy)
+        .help(String(snippet.text.prefix(400)))
     }
 }
 
@@ -336,7 +623,7 @@ struct ClipPeekLayout {
 
     /// Rows start under the title and are a fixed height, so the one under
     /// the pointer is arithmetic rather than measured.
-    static var listTop: CGFloat { NotchLayout.cardTitleLineHeight + NotchLayout.headerToBlock }
+    static var listTop: CGFloat { DeckLayout.clipboardListTop }
     static var contentHeight: CGFloat { DeckLayout.clipboardHeight - 2 * NotchLayout.cardPadding }
     static let gap = Design.px(8)
 
@@ -453,7 +740,10 @@ private struct ClipPeek: View {
 private struct ClipRow: View {
     let item: ClipboardMonitor.Item
     let copied: Bool
+    var saved = false
     let onCopy: () -> Void
+    /// Saves the clip as a snippet; nil for files and images.
+    var onSave: (() -> Void)?
     let onPin: () -> Void
     let onRemove: () -> Void
     @Environment(\.notchdeckAccentColor) private var accentColor
@@ -478,6 +768,21 @@ private struct ClipRow: View {
                     .font(Typography.cardBody)
                     .monospacedDigit()
                     .foregroundStyle(secondaryInk)
+            }
+            Group {
+                if let onSave {
+                    Button(action: onSave) {
+                        Image(systemName: saved ? "star.fill" : "star")
+                            .foregroundStyle(saved ? accentColor : secondaryInk)
+                            .frame(width: Self.starWidth, height: DeckLayout.clipboardRowHeight)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(saved)
+                    .help(saved ? L10n.t("Saved as a snippet") : L10n.t("Save as snippet"))
+                } else {
+                    Color.clear.frame(width: Self.starWidth, height: DeckLayout.clipboardRowHeight)
+                }
             }
             Button(action: onPin) {
                 Image(systemName: item.pinned ? "pin.fill" : "pin")
@@ -515,16 +820,18 @@ private struct ClipRow: View {
     }
 
     static let iconWidth = Design.px(34)
+    static let starWidth = Design.px(32)
     static let pinWidth = Design.px(34)
     static let removeWidth = Design.px(30)
     static let spacing = Design.px(14)
     static let spacerMinimum = Design.px(8)
 
-    /// What the row leaves its text, beside the icon, the age and two buttons:
-    /// six pieces in the row, so five gaps, and the spacer's own minimum.
+    /// What the row leaves its text, beside the icon, the age and three
+    /// buttons: seven pieces in the row, so six gaps, and the spacer's own
+    /// minimum.
     static func textWidth(ageWidth: CGFloat) -> CGFloat {
-        NotchLayout.cardTextWidth - iconWidth - pinWidth - removeWidth - ageWidth
-            - 5 * spacing - spacerMinimum
+        NotchLayout.cardTextWidth - iconWidth - starWidth - pinWidth - removeWidth - ageWidth
+            - 6 * spacing - spacerMinimum
     }
 
     /// "now", "4m", "2h", "3d".
@@ -543,10 +850,21 @@ private struct ClipRow: View {
 
 private struct FocusTimerCard: View {
     @ObservedObject private var timer = FocusTimer.shared
+    @Environment(\.tooltipSecondaryInk) private var secondaryInk
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            CardTitle(text: DeckTool.timer.title)
+            HStack {
+                CardTitle(text: DeckTool.timer.title)
+                Spacer(minLength: 0)
+                if let line = timer.phaseLine {
+                    Text(line)
+                        .font(Typography.cardBody.weight(.semibold))
+                        .foregroundStyle(timer.phase.isBreak ? Palette.textPrimary : secondaryInk)
+                        .lineLimit(1)
+                }
+            }
+            .frame(height: NotchLayout.cardTitleLineHeight)
             Spacer().frame(height: NotchLayout.headerToBlock)
 
             TimelineView(.animation(minimumInterval: 0.25, paused: !timer.isRunning)) { context in
@@ -576,18 +894,73 @@ private struct FocusTimerCard: View {
             HStack(spacing: Design.px(16)) {
                 PillButton(title: startTitle, prominent: true) { timer.toggle() }
                 PillButton(title: L10n.t("Reset")) { timer.reset() }
-                    .disabled(timer.isIdle)
-                    .opacity(timer.isIdle ? 0.5 : 1)
+                    .disabled(timer.isIdle && timer.phase == .focus && timer.completedInCycle == 0)
+                    .opacity(timer.isIdle && timer.phase == .focus && timer.completedInCycle == 0 ? 0.5 : 1)
+                if timer.cyclesEnabled {
+                    PillButton(title: L10n.t("Skip")) { timer.skip() }
+                        .help(timer.phase.isBreak ? L10n.t("End the break and focus") : L10n.t("Skip to the break"))
+                }
             }
             .frame(height: DeckLayout.controlHeight)
+
+            Spacer().frame(height: NotchLayout.blockSpacing)
+            FocusWeek(stats: timer.stats)
         }
     }
 
     private var startTitle: String {
         switch timer.state {
-        case .idle: return L10n.t("Start")
+        case .idle: return timer.phase.isBreak ? L10n.t("Start break") : L10n.t("Start")
         case .running: return L10n.t("Pause")
         case .paused: return L10n.t("Resume")
         }
+    }
+}
+
+/// Today's focus in words, and the last seven days as bars, today in the
+/// accent colour. Each bar names its day and total on hover.
+private struct FocusWeek: View {
+    let stats: FocusStats
+    @Environment(\.notchdeckAccentColor) private var accentColor
+    @Environment(\.tooltipSecondaryInk) private var secondaryInk
+
+    var body: some View {
+        let now = Date()
+        let today = stats.day(now)
+        let week = stats.week(endingOn: now)
+        // Scaled to the busiest day, but never so that one short session
+        // fills the row.
+        let top = max(week.map(\.minutes).max() ?? 0, 50)
+        VStack(alignment: .leading, spacing: Design.px(8)) {
+            Text(today.sessions == 0
+                 ? L10n.t("Today: no focus sessions yet")
+                 : L10n.t("Today: \(FocusStats.total(today.minutes)) · \(today.sessions) sessions"))
+                .font(Typography.cardBody)
+                .foregroundStyle(secondaryInk)
+                .lineLimit(1)
+                .frame(height: NotchLayout.cardBodyLineHeight, alignment: .leading)
+            HStack(alignment: .bottom, spacing: Design.px(6)) {
+                ForEach(Array(week.enumerated()), id: \.offset) { index, day in
+                    let isToday = index == week.count - 1
+                    let height = day.minutes == 0
+                        ? Design.px(4)
+                        : max(Design.px(6), DeckLayout.focusBarsHeight * CGFloat(day.minutes) / CGFloat(top))
+                    UnevenRoundedRectangle(topLeadingRadius: Design.px(4), topTrailingRadius: Design.px(4))
+                        .fill(day.minutes == 0 ? Palette.barTrack
+                              : (isToday ? accentColor : Palette.textSecondary.opacity(0.55)))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: height)
+                        .help(label(for: index, day: day, now: now))
+                }
+            }
+            .frame(height: DeckLayout.focusBarsHeight, alignment: .bottom)
+        }
+    }
+
+    private func label(for index: Int, day: FocusStats.Day, now: Date) -> String {
+        let date = Calendar.current.date(byAdding: .day, value: index - 6, to: now) ?? now
+        let name = index == 6 ? L10n.t("Today") : date.formatted(.dateTime.weekday(.wide))
+        return day.sessions == 0 ? L10n.t("\(name): none")
+                                 : L10n.t("\(name): \(FocusStats.total(day.minutes)), \(day.sessions) sessions")
     }
 }

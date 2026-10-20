@@ -35,8 +35,11 @@ struct DeckToolCell: View {
         Group {
             switch tool {
             case .nowPlaying: NowPlayingCell(showsReading: showsReading)
+            case .meeting:    MeetingCell(showsReading: showsReading)
             case .clipboard:  ClipboardCell(showsReading: showsReading)
+            case .vault:      VaultCell(showsReading: showsReading)
             case .timer:      TimerCell(showsReading: showsReading)
+            case .transfers:  TransfersCell(showsReading: showsReading)
             }
         }
         .frame(height: NotchLayout.cellExtent)
@@ -146,19 +149,92 @@ private struct ClipboardCell: View {
     }
 }
 
+private struct VaultCell: View {
+    let showsReading: Bool
+    @ObservedObject private var vault = VaultStore.shared
+
+    var body: some View {
+        VStack(spacing: NotchLayout.ringLabelGap) {
+            // Full and in the accent while a drag is over the notch: the
+            // place to let go.
+            DeckRing(fraction: vault.isDropTargeted ? 1 : nil) {
+                DeckSymbol(name: vault.isDropTargeted ? "arrow.down.to.line"
+                                 : (vault.items.isEmpty ? "tray" : "tray.full"),
+                           dimmed: vault.items.isEmpty && !vault.isDropTargeted)
+            }
+            if showsReading {
+                DeckReading(text: vault.items.isEmpty ? "—" : "\(vault.items.count)",
+                            dimmed: vault.items.isEmpty)
+            }
+        }
+    }
+}
+
+private struct MeetingCell: View {
+    let showsReading: Bool
+    @ObservedObject private var meetings = MeetingMonitor.shared
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 15)) { context in
+            let next = meetings.next
+            VStack(spacing: NotchLayout.ringLabelGap) {
+                DeckRing(fraction: next?.fraction(at: context.date)) {
+                    DeckSymbol(name: next?.joinURL != nil ? "video" : DeckTool.meeting.symbol,
+                               dimmed: next == nil)
+                }
+                if showsReading {
+                    DeckReading(text: MeetingMonitor.reading(for: next, now: context.date),
+                                dimmed: next == nil)
+                }
+            }
+        }
+    }
+}
+
+private struct TransfersCell: View {
+    let showsReading: Bool
+    @ObservedObject private var transfers = TransferMonitor.shared
+
+    var body: some View {
+        let fraction = transfers.overallFraction
+        VStack(spacing: NotchLayout.ringLabelGap) {
+            DeckRing(fraction: fraction ?? (transfers.transfers.isEmpty ? 1 : nil)) {
+                DeckSymbol(name: transfers.transfers.isEmpty ? "checkmark"
+                                 : (transfers.transfers.contains(where: \.isAirDrop) ? "airplayaudio" : "arrow.down"),
+                           dimmed: false)
+            }
+            if showsReading {
+                DeckReading(text: reading(fraction))
+            }
+        }
+    }
+
+    private func reading(_ fraction: Double?) -> String {
+        if transfers.transfers.isEmpty { return L10n.t("Done") }
+        if let fraction { return "\(Int((fraction * 100).rounded(.down)))%" }
+        let bytes = transfers.transfers.reduce(Int64(0)) { $0 + $1.completedBytes }
+        return ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+}
+
 private struct TimerCell: View {
     let showsReading: Bool
     @ObservedObject private var timer = FocusTimer.shared
+
+    /// A cup through a break, a pause sign while paused.
+    private var symbol: String {
+        if case .paused = timer.state { return "pause.fill" }
+        return timer.phase.isBreak ? "cup.and.saucer.fill" : "timer"
+    }
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1, paused: !timer.isRunning)) { context in
             VStack(spacing: NotchLayout.ringLabelGap) {
                 DeckRing(fraction: timer.isIdle ? nil : timer.fractionRemaining(at: context.date)) {
-                    DeckSymbol(name: timer.isRunning ? "timer" : (timer.isIdle ? "timer" : "pause.fill"),
-                               dimmed: timer.isIdle)
+                    DeckSymbol(name: symbol, dimmed: timer.isIdle)
                 }
                 if showsReading {
-                    DeckReading(text: timer.isIdle ? L10n.t("\(timer.minutes)m")
+                    DeckReading(text: timer.isIdle ? L10n.t("\(Int(timer.phaseLength / 60))m")
                                                    : DeckLayout.clock(timer.remaining(at: context.date)),
                                 dimmed: !timer.isRunning)
                 }

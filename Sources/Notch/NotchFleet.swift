@@ -403,6 +403,17 @@ final class NotchFleet {
         }
     }
 
+    /// Shows something happening right now on every notch — see `LiveEvent`.
+    /// Returns whether any notch had somewhere to show it.
+    @discardableResult
+    func showLive(_ event: LiveEvent) -> Bool {
+        var shown = false
+        for controller in controllers.values {
+            shown = controller.showLive(event) || shown
+        }
+        return shown
+    }
+
     /// Shows a usage reset notification modal on every panel.
     /// Returns whether at least one notch had somewhere to show the card. With
     /// every notch hidden the alert would otherwise vanish without a trace.

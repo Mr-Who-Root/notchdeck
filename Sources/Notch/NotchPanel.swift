@@ -89,7 +89,11 @@ final class NotchPanel: NSPanel {
         isReleasedWhenClosed = false
     }
 
-    override var canBecomeKey: Bool { false }
+    /// True only while a deck card's search field is being typed in: the
+    /// notch otherwise never takes the keyboard from the app you are in.
+    var acceptsKeyboard = false
+
+    override var canBecomeKey: Bool { acceptsKeyboard }
     override var canBecomeMain: Bool { false }
 
     /// Whether the panel tells AppKit it has active appearance — set only while

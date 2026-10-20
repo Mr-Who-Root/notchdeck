@@ -10,7 +10,8 @@
 **A small black notch pinned to a screen edge that shows how much of each coding
 assistant's usage limit you have burned — and whether it is still working,
 done, or waiting on you — plus a deck of everyday tools beside the rings: what's
-playing, your clipboard history, and a focus timer.**
+playing, your next meeting, clipboard history with snippets, a vault for files on
+their way somewhere, a focus timer with breaks, and live downloads.**
 
 **[Website](https://mr-who-root.github.io/notchdeck/) · [Download](https://github.com/Mr-Who-Root/notchdeck/releases/latest) · [Releases](https://github.com/Mr-Who-Root/notchdeck/releases)**
 
@@ -24,7 +25,7 @@ two never disagree. Hover one of the deck's cells for its card.
 
 ## The deck
 
-Three cells ride the notch after the usage rings. Each is its own ring with a
+Up to six cells ride the notch after the usage rings. Each is its own ring with a
 card on hover, so they fold, slide along the edge and carry round corners
 exactly as the rings do, on all four edges and on both platforms. Each one can
 be switched off in **Settings → Deck** (macOS) or **Settings → General → Deck**
@@ -32,9 +33,12 @@ be switched off in **Settings → Deck** (macOS) or **Settings → General → D
 
 | | |
 |---|---|
-| ![Now Playing](docs/design/deck-nowPlaying.png) | **Now Playing** — whatever the system says is playing: Music, Spotify, podcasts, a browser tab. The ring fills with the track's progress and the cell shows the artwork. The card has the title, artist and app, a scrubber you can click or drag, and previous / play-pause / next. Clicking the cell itself plays or pauses. |
-| ![Clipboard](docs/design/deck-clipboard.png) | **Clipboard** — the text, links and files you copied (and, on macOS, images), most recent first. Click a clip to put it back on the clipboard; pin the ones you reuse so they never age out; **Clear** forgets everything that isn't pinned. Right-click the notch for the full history. |
-| ![Focus Timer](docs/design/deck-timer.png) | **Focus Timer** — pick 5, 15, 25 or 50 minutes (or any length in Settings) and click the cell to start or pause. When time is up the notch opens with a chime, or a banner goes up if notifications are set to go to the Mac. |
+| ![Now Playing](docs/design/deck-nowPlaying.png) | **Now Playing** — whatever the system says is playing: Music, Spotify, podcasts, a browser tab. The ring fills with the track's progress and the cell shows the artwork. The card has the title, artist and app, a scrubber you can click or drag, previous / play-pause / next, and the system volume with mute and a menu to switch the sound output (speakers, headphones, AirPods, a display). Clicking the cell itself plays or pauses. |
+| ![Next Meeting](docs/design/deck-meeting.png) | **Next Meeting** — the ring fills over the last hour before your next meeting and through it. The card has the time, calendar and place, a **Join** button for Zoom, Google Meet, Teams, Webex and FaceTime links, and the rest of today. The notch opens 1, 5 or 10 minutes before with Join right there. On macOS it reads every calendar in the Calendar app (EventKit, asked once); on Windows, the iCal addresses you paste into Settings. |
+| ![Clipboard](docs/design/deck-clipboard.png) | **Clipboard** — the text, links and files you copied (and, on macOS, images), most recent first. Search them, click a clip to put it back on the clipboard, pin the ones you reuse so they never age out, or star one to keep it as a **snippet** (under the card's Snippets tab, and editable in Settings). **Aa** turns rich text on the clipboard into plain text, and a setting does that for every copy. Right-click the notch for the full history. |
+| ![Vault](docs/design/deck-vault.png) | **Vault** — drag files onto the notch to hold them, then drag them out into Finder (or Explorer), Mail, a chat or a browser's upload box to copy them; hold **⌘** (**Shift** on Windows) to move instead. Drag all at once, share, zip, or let it clear itself after an hour, a day or a week. It points to your files rather than copying them; things from temporary places — Mail attachments, screenshots, a browser's images — get a copy of their own in `~/Library/Application Support/NotchDeck/Vault`. |
+| ![Focus Timer](docs/design/deck-timer.png) | **Focus Timer** — pick 5, 15, 25 or 50 minutes (or any length in Settings) and click the cell to start or pause. Turn on breaks for focus, a short break, focus again and a long break every few sessions, with **Skip**. The card adds up today's finished sessions and shows the last seven days. On macOS a Shortcut can run as focus starts and stops, to switch Do Not Disturb. When time is up the notch opens with a chime, or a banner goes up if notifications are set to go to the Mac. |
+| ![Downloads](docs/design/deck-transfers.png) | **Downloads** — appears only while something is downloading (Safari, Chrome, AirDrop on macOS; any browser's temporary download file on Windows), with each one's progress, and the notch opens as each lands with **Open**, **Show in Finder** and **Add to Vault**. Plugging the charger in or out shows the battery charging, too. Both are in **Live Status** in Settings. |
 
 **How Now Playing reads.** On macOS 15.4 and later the MediaRemote framework
 only tells Apple-signed processes what is playing, so NotchDeck runs a tiny
@@ -60,6 +64,7 @@ deleted. Images are only ever kept in memory.
 |---|---|
 | **macOS 15+** | [**NotchDeck.dmg**](https://github.com/Mr-Who-Root/notchdeck/releases/latest/download/NotchDeck.dmg) — universal (Apple Silicon and Intel) |
 | **Windows 10/11** | [**NotchDeck-Setup.exe**](https://github.com/Mr-Who-Root/notchdeck/releases/latest/download/NotchDeck-Setup.exe) — installs for the current user, no admin rights |
+| **Homebrew** | `brew install --cask mr-who-root/notchdeck/notchdeck` — from [the NotchDeck tap](https://github.com/Mr-Who-Root/homebrew-notchdeck) |
 
 Both links always resolve to the newest [release](https://github.com/Mr-Who-Root/notchdeck/releases).
 After that, NotchDeck updates itself: **Settings → General → Check for Updates**,

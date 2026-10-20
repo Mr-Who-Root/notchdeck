@@ -49,6 +49,10 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>NotchDeck shows your next meeting in the notch, with a button to join its call.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>NotchDeck shows your next meeting in the notch, with a button to join its call.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>NotchDeck answers your phone on this network so it can show your usage.</string>
 	<key>NotchDeckRepository</key>

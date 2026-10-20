@@ -322,6 +322,7 @@ build-ci: gen
 		'<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
 		'<plist version="1.0"><dict>' \
 		'<key>com.apple.security.cs.disable-library-validation</key><true/>' \
+		'<key>com.apple.security.personal-information.calendars</key><true/>' \
 		'</dict></plist>' > $(CI_ENTITLEMENTS)
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -destination '$(DEST)' \
 		-configuration Release -derivedDataPath $(CI_DERIVED) \
@@ -416,3 +417,27 @@ release-github:
 			$(GH_DIR)/$(APP_NAME)-$(VERSION).dmg $(GH_DIR)/$(APP_NAME).dmg $(GH_DIR)/appcast.xml; \
 	fi
 	@echo "Released v$(VERSION) to https://github.com/$(GITHUB_REPO)/releases/tag/v$(VERSION)"
+	$(MAKE) bump-cask
+
+# The Homebrew tap: `brew install --cask mr-who-root/notchdeck/notchdeck`.
+# Rewrites its cask for this version from the disk image just published.
+TAP_REPO ?= Mr-Who-Root/homebrew-notchdeck
+TAP_DIR := build/tap
+
+.PHONY: bump-cask winget-manifests
+
+bump-cask:
+	@test -f $(GH_DIR)/$(APP_NAME)-$(VERSION).dmg || (echo "No $(GH_DIR)/$(APP_NAME)-$(VERSION).dmg — run make release-github" && exit 1)
+	rm -rf $(TAP_DIR)
+	gh repo clone $(TAP_REPO) $(TAP_DIR) -- --depth 1
+	Scripts/make-cask.sh $(VERSION) $(GH_DIR)/$(APP_NAME)-$(VERSION).dmg $(TAP_DIR)/Casks/notchdeck.rb
+	cd $(TAP_DIR) && git add Casks/notchdeck.rb \
+		&& { git diff --cached --quiet || git commit -m "notchdeck $(VERSION)"; } && git push
+
+# winget: the manifests for this version, from the Windows installer the
+# Windows Package workflow attached to the release. Submitting them is a pull
+# request to microsoft/winget-pkgs.
+winget-manifests:
+	rm -rf build/winget
+	gh release download v$(VERSION) -R $(GITHUB_REPO) -p '$(APP_NAME)-Setup.exe' -D build/winget
+	Scripts/make-winget.sh $(VERSION) build/winget/$(APP_NAME)-Setup.exe build/winget

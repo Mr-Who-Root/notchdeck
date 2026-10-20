@@ -181,6 +181,21 @@ final class CursorGeometry {
         )
     }
 
+    /// Where the live card is, on the notch's middle — see `LiveCard`.
+    var liveCardRect: CGRect? {
+        guard model.isExpanded, model.activeLive != nil, model.hoveredIndex == nil,
+              model.updatePrompt == nil else { return nil }
+        let across = model.edge.isVertical ? NotchLayout.cardWidth : LiveCard.cardHeight
+        let along = model.edge.isVertical ? LiveCard.cardHeight : NotchLayout.cardWidth
+        let centre = model.cardAlong(centredOn: cellWing.lead + cellWing.length / 2, length: along)
+        return placement.rect(
+            along: centre - along / 2,
+            across: model.notchDrawnDepth + model.edgeGap,
+            length: along,
+            depth: NotchLayout.tailGap + NotchLayout.tailLength + across
+        )
+    }
+
     /// Where the update card is, on the notch's middle — see `UpdateCard`.
     var updateCardRect: CGRect? {
         guard model.isExpanded, model.updatePrompt != nil else { return nil }

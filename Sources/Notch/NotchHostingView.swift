@@ -15,6 +15,31 @@ import SwiftUI
 /// this panel is empty space reserved for the tooltip, so that would turn the
 /// hole the notch depends on into a wall.
 final class NotchContainerView: NSView {
+    /// Where a drag over the panel is reported — the vault's drop.
+    weak var dropTarget: NotchDropTarget?
+
+    /// Panel coordinates, top-left origin, the same as `interactiveRects`.
+    private func panelPoint(_ info: NSDraggingInfo) -> CGPoint {
+        let local = convert(info.draggingLocation, from: nil)
+        return CGPoint(x: local.x, y: bounds.height - local.y)
+    }
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        dropTarget?.dragUpdated(sender, at: panelPoint(sender)) ?? []
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        dropTarget?.dragUpdated(sender, at: panelPoint(sender)) ?? []
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        dropTarget?.dragExited()
+    }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        dropTarget?.performDrop(sender, at: panelPoint(sender)) ?? false
+    }
+
     override func hitTest(_ point: NSPoint) -> NSView? {
         // `point` arrives in the superview's coordinates, and a subview's own
         // `hitTest` expects it in ours.
@@ -41,6 +66,28 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
         return super.hitTest(point)
     }
 
+    /// The same drop as the container's, for when AppKit asks this view — the
+    /// deepest one under the drag that registered for it.
+    weak var dropTarget: NotchDropTarget?
+
+    override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+        dropTarget?.dragUpdated(sender, at: convert(sender.draggingLocation, from: nil)) ?? []
+    }
+
+    override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+        dropTarget?.dragUpdated(sender, at: convert(sender.draggingLocation, from: nil)) ?? []
+    }
+
+    override func draggingExited(_ sender: NSDraggingInfo?) {
+        dropTarget?.dragExited()
+    }
+
+    override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool { true }
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        dropTarget?.performDrop(sender, at: convert(sender.draggingLocation, from: nil)) ?? false
+    }
+
     /// `NSView.menu` is not inherited by subviews, and the hit test lands on one
     /// of SwiftUI's, so AppKit would otherwise ask a view that has no menu.
     override func menu(for event: NSEvent) -> NSMenu? {
@@ -48,4 +95,13 @@ final class NotchHostingView<Content: View>: NSHostingView<Content> {
         guard interactiveRects.contains(where: { $0.contains(local) }) else { return nil }
         return menu
     }
+}
+
+/// **What the panel does with something dragged over it**: the vault takes
+/// files, text, links and images. Points are in the panel, top-left origin.
+@MainActor
+protocol NotchDropTarget: AnyObject {
+    func dragUpdated(_ info: NSDraggingInfo, at point: CGPoint) -> NSDragOperation
+    func dragExited()
+    func performDrop(_ info: NSDraggingInfo, at point: CGPoint) -> Bool
 }

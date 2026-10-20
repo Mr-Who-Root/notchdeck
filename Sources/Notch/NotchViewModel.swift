@@ -111,6 +111,19 @@ final class NotchViewModel: ObservableObject {
         snapshots.firstIndex { $0.id == event.providerID }
     }
 
+    /// Something happening right now — the charger, a download landing, a
+    /// focus phase ending, a meeting about to start — shown on the notch's
+    /// middle for a moment. See `LiveEvent`.
+    @Published var activeLive: LiveEvent?
+
+    /// A deck card asking for something only the panel can do — see `DeckAction`.
+    var onDeckAction: ((DeckAction, CGRect) -> Void)?
+
+    /// The vault's cell, when it is on — where a drag over the notch is sent.
+    var vaultIndex: Int? {
+        snapshots.firstIndex { $0.deckTool == .vault }
+    }
+
     /// Whether the notch is open or folded away to its pill.
     @Published var isExpanded = false
     /// Clicked open, so it stays open until clicked shut again. A gesture,

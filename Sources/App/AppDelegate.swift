@@ -1177,9 +1177,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - The deck
 
-    /// The deck's own cells — Now Playing, Clipboard, Focus Timer; see
-    /// `DeckTool`. Each monitor runs only while its cell is switched on, so
-    /// turning one off also stops it reading anything.
+    /// The deck's own cells — Now Playing, Next Meeting, Clipboard, Vault,
+    /// Focus Timer and Downloads; see `DeckTool`. Each monitor runs only while
+    /// its cell is switched on, so turning one off also stops it reading
+    /// anything.
     ///
     /// Before the first `fleet.apply(displayPreference:)`, for the reason given
     /// above: the click callback is copied into a controller as it is made.
@@ -1188,37 +1189,99 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let clipboard = ClipboardMonitor.shared
         clipboard.limit = preferences.clipboardHistoryLimit
         clipboard.remembersHistory = preferences.clipboardRemembersHistory
+        clipboard.alwaysPlainText = preferences.clipboardAlwaysPlainText
+
+        let vault = VaultStore.shared
+        vault.keepsCopies = preferences.vaultKeepsCopies
+        vault.clearAfter = preferences.vaultClearAfter.interval
 
         let timer = FocusTimer.shared
         timer.setMinutes(preferences.focusTimerMinutes, notify: false)
+        timer.cycle = Self.cycle(from: preferences)
+        timer.cyclesEnabled = preferences.focusCycles
         timer.onDurationChange = { [weak preferences] in preferences?.focusTimerMinutes = $0 }
-        timer.onFinish = { [weak self] in self?.focusTimerFinished() }
+        timer.onFinish = { [weak self] ended, next in self?.focusTimerFinished(ended: ended, next: next) }
+        timer.onFocusRunningChange = { [weak preferences] running in
+            guard let preferences else { return }
+            ShortcutsRunner.run(running ? preferences.focusStartShortcut : preferences.focusEndShortcut)
+        }
+
+        let meetings = MeetingMonitor.shared
+        meetings.headsUpMinutes = preferences.meetingHeadsUpMinutes > 0 ? preferences.meetingHeadsUpMinutes : nil
+        meetings.onHeadsUp = { [weak self] meeting in self?.announce(.meeting(meeting)) }
+
+        PowerMonitor.shared.onPlugChange = { [weak self, weak preferences] reading in
+            guard preferences?.liveCharging == true else { return }
+            self?.notchFleet?.showLive(.power(reading))
+        }
+        TransferMonitor.shared.onFinish = { [weak self, weak preferences] name, url in
+            guard preferences?.liveDownloads == true else { return }
+            self?.notchFleet?.showLive(.downloaded(name: name, url: url))
+        }
 
         fleet.onDeckToolClick = { tool in
             switch tool {
             case .nowPlaying: NowPlayingMonitor.shared.send(.toggle)
             case .timer: FocusTimer.shared.toggle()
+            case .meeting: MeetingMonitor.shared.joinOrOpen()
+            case .vault: VaultStore.shared.openFolder()
+            case .transfers:
+                if let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first {
+                    NSWorkspace.shared.open(downloads)
+                }
             case .clipboard: break
             }
         }
 
         // The values as published, not read back: `@Published` fires in
         // `willSet`, so the preferences still hold the old ones here.
-        Publishers.CombineLatest3(preferences.$showsNowPlaying,
-                                  preferences.$showsClipboard,
-                                  preferences.$showsFocusTimer)
-            .map { DeckTool.enabled(nowPlaying: $0, clipboard: $1, timer: $2) }
+        let switches = Publishers.CombineLatest4(preferences.$showsNowPlaying, preferences.$showsClipboard,
+                                                 preferences.$showsFocusTimer, preferences.$showsVault)
+        let more = Publishers.CombineLatest3(preferences.$showsMeeting, preferences.$liveDownloads,
+                                             TransferMonitor.shared.$isActive)
+        switches.combineLatest(more)
+            .map { first, second in
+                DeckTool.enabled(nowPlaying: first.0, clipboard: first.1, timer: first.2, vault: first.3,
+                                 meeting: second.0, transfers: second.1 && second.2)
+            }
             .removeDuplicates()
             .receive(on: RunLoop.main)
             .sink { [weak fleet] tools in
                 fleet?.apply(deckTools: tools)
                 // Demo mode shows `DeckFixtures` and reads nothing real.
                 guard !demo else { return DeckFixtures.apply() }
-                if tools.contains(.nowPlaying) { NowPlayingMonitor.shared.start() } else { NowPlayingMonitor.shared.stop() }
+                if tools.contains(.nowPlaying) {
+                    NowPlayingMonitor.shared.start()
+                    AudioOutput.shared.start()
+                } else {
+                    NowPlayingMonitor.shared.stop()
+                    AudioOutput.shared.stop()
+                }
                 if tools.contains(.clipboard) { ClipboardMonitor.shared.start() } else { ClipboardMonitor.shared.stop() }
+                if tools.contains(.vault) {
+                    VaultStore.shared.start()
+                    FileDragWatcher.shared.start()
+                } else {
+                    VaultStore.shared.stop()
+                    FileDragWatcher.shared.stop()
+                }
+                if tools.contains(.meeting) { MeetingMonitor.shared.start() } else { MeetingMonitor.shared.stop() }
                 if !tools.contains(.timer) { FocusTimer.shared.reset() }
             }
             .store(in: &cancellables)
+
+        if !demo {
+            preferences.$liveDownloads
+                .removeDuplicates()
+                .receive(on: RunLoop.main)
+                .sink { $0 ? TransferMonitor.shared.start() : TransferMonitor.shared.stop() }
+                .store(in: &cancellables)
+            preferences.$liveCharging
+                .removeDuplicates()
+                .receive(on: RunLoop.main)
+                .sink { $0 ? PowerMonitor.shared.start() : PowerMonitor.shared.stop() }
+                .store(in: &cancellables)
+        }
 
         preferences.$topEdgeStyle
             .dropFirst()
@@ -1239,6 +1302,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { ClipboardMonitor.shared.limit = $0 }
             .store(in: &cancellables)
 
+        preferences.$clipboardAlwaysPlainText
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { ClipboardMonitor.shared.alwaysPlainText = $0 }
+            .store(in: &cancellables)
+
+        preferences.$vaultKeepsCopies
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { VaultStore.shared.keepsCopies = $0 }
+            .store(in: &cancellables)
+
+        preferences.$vaultClearAfter
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { VaultStore.shared.clearAfter = $0.interval }
+            .store(in: &cancellables)
+
+        preferences.$meetingHeadsUpMinutes
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { MeetingMonitor.shared.headsUpMinutes = $0 > 0 ? $0 : nil }
+            .store(in: &cancellables)
+
         preferences.$focusTimerMinutes
             .dropFirst()
             .removeDuplicates()
@@ -1246,26 +1333,89 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { FocusTimer.shared.setMinutes($0, notify: false) }
             .store(in: &cancellables)
 
+        preferences.$focusCycles
+            .dropFirst()
+            .receive(on: RunLoop.main)
+            .sink { FocusTimer.shared.cyclesEnabled = $0 }
+            .store(in: &cancellables)
+
+        // Any of the rhythm's lengths: read back once the change has landed.
+        Publishers.Merge4(preferences.$focusShortBreakMinutes.map { _ in () },
+                          preferences.$focusLongBreakMinutes.map { _ in () },
+                          preferences.$focusLongBreakEvery.map { _ in () },
+                          preferences.$focusAutoStartsNext.map { _ in () })
+            .dropFirst(4)
+            .receive(on: RunLoop.main)
+            .sink { [weak preferences] in
+                guard let preferences else { return }
+                FocusTimer.shared.cycle = Self.cycle(from: preferences)
+            }
+            .store(in: &cancellables)
+
         // A timer that ran out while the Mac slept finishes as it wakes.
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification)
             .receive(on: RunLoop.main)
-            .sink { _ in FocusTimer.shared.finishIfDue() }
+            .sink { _ in
+                FocusTimer.shared.finishIfDue()
+                MeetingMonitor.shared.reload()
+            }
             .store(in: &cancellables)
     }
 
-    /// The timer is up: the notch opens with the finished sound, or a banner
-    /// goes up when notifications are sent to the Mac instead.
     @MainActor
-    private func focusTimerFinished() {
+    private static func cycle(from preferences: Preferences) -> FocusTimer.Cycle {
+        FocusTimer.Cycle(shortBreakMinutes: preferences.focusShortBreakMinutes,
+                         longBreakMinutes: preferences.focusLongBreakMinutes,
+                         longBreakEvery: preferences.focusLongBreakEvery,
+                         autoStartsNext: preferences.focusAutoStartsNext)
+    }
+
+    /// A phase is up: the finished sound, and the notch opens to say what
+    /// comes next — or a banner goes up, when notifications go to the Mac.
+    @MainActor
+    private func focusTimerFinished(ended: FocusTimer.Phase, next: FocusTimer.Phase) {
         guard let preferences else { return }
         if preferences.sessionEndSound { SessionChime.play(preferences.sessionEndSoundName) }
+        let timer = FocusTimer.shared
+        let event: LiveEvent
+        switch (ended, next) {
+        case (.focus, .shortBreak), (.focus, .longBreak):
+            let minutes = next == .longBreak ? timer.cycle.longBreakMinutes : timer.cycle.shortBreakMinutes
+            event = .focus(title: L10n.t("Time for a break"),
+                           detail: next == .longBreak ? L10n.t("Long break: \(minutes) minutes. You've earned it.")
+                                                      : L10n.t("Short break: \(minutes) minutes."),
+                           onBreak: true)
+        case (.focus, _):
+            event = .focus(title: L10n.t("Focus done"),
+                           detail: L10n.t("\(timer.minutes) minutes are up."), onBreak: false)
+        default:
+            event = .focus(title: L10n.t("Break's over"),
+                           detail: L10n.t("Back to focus for \(timer.minutes) minutes."), onBreak: false)
+        }
+        announce(event)
+    }
+
+    /// Something worth saying now, said the way the person chose: in the
+    /// notch, or as a banner on the Mac.
+    @MainActor
+    private func announce(_ event: LiveEvent) {
+        guard let preferences else { return }
+        let (title, body): (String, String) = {
+            switch event {
+            case .focus(let title, let detail, _): return (title, detail)
+            case .meeting(let meeting):
+                return (meeting.title, L10n.t("Starts at \(MeetingMonitor.time(meeting.start))"))
+            case .power(let reading): return (reading.title, "\(reading.level)%")
+            case .downloaded(let name, _): return (L10n.t("Downloaded"), name)
+            }
+        }()
         switch preferences.notificationChannel {
         case .notch:
-            notchFleet?.peek(for: 6, focusing: nil)
+            if notchFleet?.showLive(event) != true {
+                ChannelNotifications.post(title: title, body: body, thread: "deck")
+            }
         case .mac:
-            ChannelNotifications.post(title: L10n.t("Focus timer done"),
-                                      body: L10n.t("\(FocusTimer.shared.minutes) minutes are up."),
-                                      thread: "focus-timer")
+            ChannelNotifications.post(title: title, body: body, thread: "deck")
         }
     }
 
@@ -1504,6 +1654,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         notchFleet?.stop()
         NowPlayingMonitor.shared.stop()
         ClipboardMonitor.shared.stop()
+        AudioOutput.shared.stop()
+        MeetingMonitor.shared.stop()
+        TransferMonitor.shared.stop()
+        PowerMonitor.shared.stop()
+        FileDragWatcher.shared.stop()
+        // Do Not Disturb, turned on for a focus session, goes off with the app.
+        if FocusTimer.shared.isRunning, FocusTimer.shared.phase == .focus {
+            ShortcutsRunner.run(preferences?.focusEndShortcut ?? "")
+        }
         // A language server this app started, if any. Left running it would
         // outlive the reason it exists and keep answering on loopback to
         // nothing.

@@ -33,6 +33,11 @@ final class DeckToolCellTests: XCTestCase {
     func testEnabledToolsKeepTheirOrder() {
         XCTAssertEqual(DeckTool.enabled(nowPlaying: true, clipboard: true, timer: true),
                        [.nowPlaying, .clipboard, .timer])
+        XCTAssertEqual(DeckTool.enabled(nowPlaying: true, clipboard: true, timer: true,
+                                        vault: true, meeting: true, transfers: true),
+                       [.nowPlaying, .meeting, .clipboard, .vault, .timer, .transfers])
+        XCTAssertEqual(DeckTool.enabled(nowPlaying: false, clipboard: false, timer: false, vault: true),
+                       [.vault])
         XCTAssertEqual(DeckTool.enabled(nowPlaying: false, clipboard: true, timer: true), [.clipboard, .timer])
         XCTAssertEqual(DeckTool.enabled(nowPlaying: false, clipboard: false, timer: false), [])
     }
@@ -307,7 +312,9 @@ final class FocusTimerTests: XCTestCase {
     private var now = Date(timeIntervalSince1970: 10_000)
 
     private func timer() -> FocusTimer {
-        FocusTimer(clock: { [unowned self] in self.now })
+        // No stats store: the tests run inside the app, whose own defaults
+        // hold the person's real focus history.
+        FocusTimer(clock: { [unowned self] in self.now }, statsStore: nil)
     }
 
     func testRunsPausesAndResumes() {
@@ -330,7 +337,7 @@ final class FocusTimerTests: XCTestCase {
         let timer = timer()
         timer.setMinutes(1, notify: false)
         var finished = 0
-        timer.onFinish = { finished += 1 }
+        timer.onFinish = { _, _ in finished += 1 }
         timer.start()
         now += 61
         timer.finishIfDue()
@@ -382,6 +389,10 @@ final class DeckRenderTests: XCTestCase {
     override func tearDown() {
         NowPlayingMonitor.shared.showDemo(nil)
         ClipboardMonitor.shared.showDemo([])
+        VaultStore.shared.showDemo([])
+        SnippetStore.shared.showDemo([])
+        MeetingMonitor.shared.showDemo(next: nil, later: [])
+        TransferMonitor.shared.showDemo([])
         FocusTimer.shared.reset()
         super.tearDown()
     }

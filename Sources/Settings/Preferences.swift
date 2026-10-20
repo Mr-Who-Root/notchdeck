@@ -158,9 +158,84 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(focusTimerMinutes, forKey: Keys.focusTimerMinutes) }
     }
 
+    /// The vault: files dragged onto the notch, held to drag out again.
+    @Published var showsVault: Bool {
+        didSet { defaults.set(showsVault, forKey: Keys.showsVault) }
+    }
+
+    /// Copy every file dropped in, rather than pointing at it.
+    @Published var vaultKeepsCopies: Bool {
+        didSet { defaults.set(vaultKeepsCopies, forKey: Keys.vaultKeepsCopies) }
+    }
+
+    @Published var vaultClearAfter: VaultClearAfter {
+        didSet { defaults.set(vaultClearAfter.rawValue, forKey: Keys.vaultClearAfter) }
+    }
+
+    /// The next meeting, from the Mac's calendars.
+    @Published var showsMeeting: Bool {
+        didSet { defaults.set(showsMeeting, forKey: Keys.showsMeeting) }
+    }
+
+    /// Minutes before a meeting the notch says so; 0 never.
+    @Published var meetingHeadsUpMinutes: Int {
+        didSet { defaults.set(meetingHeadsUpMinutes, forKey: Keys.meetingHeadsUpMinutes) }
+    }
+
+    static let meetingHeadsUpChoices = [0, 1, 5, 10]
+
+    /// The notch opens for a moment when the charger goes in or comes out.
+    @Published var liveCharging: Bool {
+        didSet { defaults.set(liveCharging, forKey: Keys.liveCharging) }
+    }
+
+    /// Downloads and AirDrop get a cell while they run, and a card as they land.
+    @Published var liveDownloads: Bool {
+        didSet { defaults.set(liveDownloads, forKey: Keys.liveDownloads) }
+    }
+
+    /// Focus, short break, focus, … and a long break every few sessions.
+    @Published var focusCycles: Bool {
+        didSet { defaults.set(focusCycles, forKey: Keys.focusCycles) }
+    }
+
+    @Published var focusShortBreakMinutes: Int {
+        didSet { defaults.set(focusShortBreakMinutes, forKey: Keys.focusShortBreakMinutes) }
+    }
+
+    @Published var focusLongBreakMinutes: Int {
+        didSet { defaults.set(focusLongBreakMinutes, forKey: Keys.focusLongBreakMinutes) }
+    }
+
+    @Published var focusLongBreakEvery: Int {
+        didSet { defaults.set(focusLongBreakEvery, forKey: Keys.focusLongBreakEvery) }
+    }
+
+    @Published var focusAutoStartsNext: Bool {
+        didSet { defaults.set(focusAutoStartsNext, forKey: Keys.focusAutoStartsNext) }
+    }
+
+    /// A Shortcut run as focus starts — one that turns on Do Not Disturb.
+    /// Empty runs nothing.
+    @Published var focusStartShortcut: String {
+        didSet { defaults.set(focusStartShortcut, forKey: Keys.focusStartShortcut) }
+    }
+
+    /// A Shortcut run as focus stops — one that turns Do Not Disturb off.
+    @Published var focusEndShortcut: String {
+        didSet { defaults.set(focusEndShortcut, forKey: Keys.focusEndShortcut) }
+    }
+
+    /// Every piece of rich text copied is stripped to plain text.
+    @Published var clipboardAlwaysPlainText: Bool {
+        didSet { defaults.set(clipboardAlwaysPlainText, forKey: Keys.clipboardAlwaysPlainText) }
+    }
+
     /// The deck's cells, in the order the notch draws them after the rings.
+    /// Downloads is not among them: it comes and goes with what is downloading.
     var deckTools: [DeckTool] {
-        DeckTool.enabled(nowPlaying: showsNowPlaying, clipboard: showsClipboard, timer: showsFocusTimer)
+        DeckTool.enabled(nowPlaying: showsNowPlaying, clipboard: showsClipboard, timer: showsFocusTimer,
+                         vault: showsVault, meeting: showsMeeting)
     }
 
     /// Which screen edge the notch is welded to.
@@ -645,6 +720,21 @@ final class Preferences: ObservableObject {
         static let clipboardRemembersHistory = "clipboardRemembersHistory"
         static let clipboardHistoryLimit = "clipboardHistoryLimit"
         static let focusTimerMinutes = "focusTimerMinutes"
+        static let showsVault = "deckShowsVault"
+        static let vaultKeepsCopies = "vaultKeepsCopies"
+        static let vaultClearAfter = "vaultClearAfter"
+        static let showsMeeting = "deckShowsMeeting"
+        static let meetingHeadsUpMinutes = "meetingHeadsUpMinutes"
+        static let liveCharging = "liveCharging"
+        static let liveDownloads = "liveDownloads"
+        static let focusCycles = "focusCycles"
+        static let focusShortBreakMinutes = "focusShortBreakMinutes"
+        static let focusLongBreakMinutes = "focusLongBreakMinutes"
+        static let focusLongBreakEvery = "focusLongBreakEvery"
+        static let focusAutoStartsNext = "focusAutoStartsNext"
+        static let focusStartShortcut = "focusStartShortcut"
+        static let focusEndShortcut = "focusEndShortcut"
+        static let clipboardAlwaysPlainText = "clipboardAlwaysPlainText"
         static let presence = "appPresence"
         static let notificationChannel = "notificationChannel"
         static let showsLimitsInMenuBar = "showsLimitsInMenuBar"
@@ -973,6 +1063,23 @@ final class Preferences: ObservableObject {
         self.clipboardHistoryLimit = Preferences.clipboardHistoryLimits.contains(limit) ? limit : 50
         let minutes = defaults.object(forKey: Keys.focusTimerMinutes) as? Int ?? FocusTimer.defaultMinutes
         self.focusTimerMinutes = min(max(minutes, 1), 180)
+        self.showsVault = defaults.object(forKey: Keys.showsVault) as? Bool ?? true
+        self.vaultKeepsCopies = defaults.object(forKey: Keys.vaultKeepsCopies) as? Bool ?? false
+        self.vaultClearAfter = defaults.string(forKey: Keys.vaultClearAfter)
+            .flatMap(VaultClearAfter.init(rawValue:)) ?? .never
+        self.showsMeeting = defaults.object(forKey: Keys.showsMeeting) as? Bool ?? true
+        let headsUp = defaults.object(forKey: Keys.meetingHeadsUpMinutes) as? Int ?? 5
+        self.meetingHeadsUpMinutes = Preferences.meetingHeadsUpChoices.contains(headsUp) ? headsUp : 5
+        self.liveCharging = defaults.object(forKey: Keys.liveCharging) as? Bool ?? true
+        self.liveDownloads = defaults.object(forKey: Keys.liveDownloads) as? Bool ?? true
+        self.focusCycles = defaults.object(forKey: Keys.focusCycles) as? Bool ?? false
+        self.focusShortBreakMinutes = min(max(defaults.object(forKey: Keys.focusShortBreakMinutes) as? Int ?? 5, 1), 60)
+        self.focusLongBreakMinutes = min(max(defaults.object(forKey: Keys.focusLongBreakMinutes) as? Int ?? 15, 1), 90)
+        self.focusLongBreakEvery = min(max(defaults.object(forKey: Keys.focusLongBreakEvery) as? Int ?? 4, 2), 8)
+        self.focusAutoStartsNext = defaults.object(forKey: Keys.focusAutoStartsNext) as? Bool ?? true
+        self.focusStartShortcut = defaults.string(forKey: Keys.focusStartShortcut) ?? ""
+        self.focusEndShortcut = defaults.string(forKey: Keys.focusEndShortcut) ?? ""
+        self.clipboardAlwaysPlainText = defaults.object(forKey: Keys.clipboardAlwaysPlainText) as? Bool ?? false
         // Absent means never chosen. The Dock is the default because it is the
         // findable one — a new user who cannot see the app anywhere has no way
         // to learn it is running.

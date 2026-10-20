@@ -110,6 +110,10 @@ final class NotchWindowController {
     /// them as the panel follows it — so cursor tracking is suspended until
     /// the drag ends.
     private var isOptionDragging = false
+    /// Share sheets and menus a deck card has up: each holds the notch open
+    /// until it closes, or the anchor it hangs from would fold away under it.
+    private var holdsOpen = 0
+    private var shareDelegate: ShareDelegate?
 
     /// Determines whether a full-screen application window is active on this notch's display.
     /// Default implementation queries WindowServer and NSWorkspace; overridable for testing.
@@ -249,6 +253,37 @@ final class NotchWindowController {
                 MainActor.assumeIsolated { self?.updateInteractiveRects() }
             }
             .store(in: &cancellables)
+
+        model.$activeLive
+            .sink { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateInteractiveRects() }
+            }
+            .store(in: &cancellables)
+
+        // The search field had the keyboard: it goes back once the clipboard
+        // card is no longer on screen.
+        model.$hoveredIndex.combineLatest(model.$isExpanded)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] index, expanded in
+                guard let self else { return }
+                let onClipboard = expanded && index.flatMap { self.model.snapshots[safe: $0]?.deckTool } == .clipboard
+                if !onClipboard { self.endTyping() }
+            }
+            .store(in: &cancellables)
+
+        // A drag that could go in the vault starting or stopping anywhere on
+        // screen: whether the notch should open for it is a question for the
+        // pointer's position, asked now rather than at the next move.
+        NotificationCenter.default.publisher(for: FileDragWatcher.changed)
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                if !FileDragWatcher.shared.isDragging { VaultStore.shared.isDropTargeted = false }
+                self.cursorMoved()
+            }
+            .store(in: &cancellables)
+
+        model.onDeckAction = { [weak self] action, rect in self?.perform(action, anchor: rect) }
 
         model.$updatePrompt
             .sink { [weak self] _ in
@@ -431,6 +466,12 @@ final class NotchWindowController {
             hosting.frame = container.bounds
             hosting.autoresizingMask = [.width, .height]
             container.addSubview(hosting)
+            // Registered on both: AppKit sends a drag to the deepest view
+            // under it that asked for its types.
+            container.dropTarget = self
+            hosting.dropTarget = self
+            container.registerForDraggedTypes(VaultDrop.draggedTypes)
+            hosting.registerForDraggedTypes(VaultDrop.draggedTypes)
             panel.contentView = container
             panel.ignoresMouseEvents = true
             if !Runtime.isUnderTest { panel.orderFrontRegardless() }
@@ -1239,6 +1280,7 @@ final class NotchWindowController {
         let geometry = evaluation ?? cursorGeometry
         var rects = [geometry.liveRect(gripRevealed: gripRevealed)]
         if let card = geometry.updateCardRect { rects.append(card) }
+        if let card = geometry.liveCardRect { rects.append(card) }
         if model.isExpanded, let event = model.activeResetAlert, let card = geometry.resetCardRect(event: event) {
             rects.append(card)
         }
@@ -1344,18 +1386,32 @@ final class NotchWindowController {
         let overTooltip = model.hoveredIndex
             .flatMap(geometry.tooltipRect(index:))
             .map { model.isExpanded && $0.contains(local) } ?? false
+        let overLive = geometry.liveCardRect?.contains(local) ?? false
+        // A file being dragged towards the notch opens it a little early —
+        // the target is small and the hand is busy — and sends it to the
+        // vault's card, where it can be let go.
+        FileDragWatcher.shared.checkButton()
+        let vaultIndex = model.vaultIndex
+        let carryingFiles = FileDragWatcher.shared.isDragging && vaultIndex != nil
+        let catching = carryingFiles
+            && geometry.liveRect(gripRevealed: gripRevealed).insetBy(dx: -Self.dragCatch, dy: -Self.dragCatch)
+                .contains(local)
         // The fold setting gates this check as surely as the one in
         // handleActiveSpaceOrAppChange: left ungated, the hover fold out-votes
         // "Always show" under a full-screen app while the other path keeps
         // restoring it — the notch ends up folding on every poll.
-        setExpanded(geometry.liveRect(gripRevealed: gripRevealed).contains(local) || overTooltip,
+        setExpanded(geometry.liveRect(gripRevealed: gripRevealed).contains(local) || overTooltip || overLive
+                        || catching,
                     ignoreAlwaysOn: foldsForFullScreen && isFullScreenActive())
         // Opening calls onLook, which may change content, scale or placement
         // synchronously. Never carry the folded evaluation across that call.
         if !wasExpanded { geometry = cursorGeometry }
 
         var target: Int?
-        if model.isExpanded, geometry.notchRect.contains(local), geometry.isBelowTheHole(local) {
+        if carryingFiles, model.isExpanded, catching || overTooltip
+            || (vaultIndex.flatMap(geometry.tooltipRect(index:))?.contains(local) ?? false) {
+            target = vaultIndex
+        } else if model.isExpanded, geometry.notchRect.contains(local), geometry.isBelowTheHole(local) {
             target = geometry.cellIndex(along: geometry.placement.along(of: local))
         } else if model.isExpanded, let current = model.hoveredIndex,
                   let card = geometry.tooltipRect(index: current),
@@ -1419,6 +1475,9 @@ final class NotchWindowController {
         updateInteractiveRects(using: geometry)
     }
 
+    /// How far past the notch a dragged file starts opening it.
+    private static let dragCatch = Design.px(70)
+
     /// Opens on contact, folds shut after a pause — unless it has been pinned
     /// open, in which case the pointer is not what decides.
     ///
@@ -1439,6 +1498,8 @@ final class NotchWindowController {
 
         // An update offered holds it open until it is answered.
         if model.updatePrompt != nil { return }
+        // A share sheet or a menu from a card is still up.
+        if holdsOpen > 0 { return }
         // A peek holds the notch open for its own duration; only after that
         // does the pointer get a say again.
         if let peekUntil, peekUntil > Date() { return }
@@ -2064,6 +2125,157 @@ final class NotchWindowController {
         openSettings: { [weak self] in self?.onOpenSettings?() }
     )
 }
+
+// MARK: - The deck: drops, cards' requests, live events
+
+extension NotchWindowController: NotchDropTarget {
+    /// Something happening right now, on the notch's middle for a moment —
+    /// see `LiveEvent`. Stays while the pointer is on it.
+    @discardableResult
+    func showLive(_ event: LiveEvent) -> Bool {
+        guard visibility != .hidden, panel != nil else { return false }
+        withAnimation(.easeOut(duration: 0.18)) { model.activeLive = event }
+        peek(for: event.duration, focusing: nil)
+        scheduleLiveEnd(event, after: event.duration)
+        return true
+    }
+
+    private func scheduleLiveEnd(_ event: LiveEvent, after delay: TimeInterval) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let panel = self.panel, self.model.activeLive == event else { return }
+                // Still being read, or its buttons reached for.
+                if self.cursorGeometry.liveCardRect?.contains(self.localCursor(in: panel.frame)) == true {
+                    self.scheduleLiveEnd(event, after: 1)
+                    return
+                }
+                withAnimation(.easeOut(duration: 0.18)) { self.model.activeLive = nil }
+                self.updateInteractiveRects()
+                self.cursorMoved()
+            }
+        }
+    }
+
+    // MARK: Requests from the cards
+
+    func perform(_ action: DeckAction, anchor: CGRect) {
+        switch action {
+        case .share(let urls): share(urls, anchor: anchor)
+        case .outputDevices: showOutputDevices(anchor: anchor)
+        case .beginTyping: beginTyping()
+        case .endTyping: endTyping()
+        }
+    }
+
+    private func share(_ urls: [URL], anchor: CGRect) {
+        guard !urls.isEmpty, let hostingView else { return }
+        let picker = NSSharingServicePicker(items: urls)
+        let delegate = ShareDelegate { [weak self] in
+            guard let self else { return }
+            self.holdsOpen = max(0, self.holdsOpen - 1)
+            self.shareDelegate = nil
+            self.cursorMoved()
+        }
+        shareDelegate = delegate
+        picker.delegate = delegate
+        holdsOpen += 1
+        // The hosting view is flipped, so the panel's top-left rect is its own.
+        picker.show(relativeTo: anchor.isEmpty ? CGRect(x: 0, y: 0, width: 1, height: 1) : anchor,
+                    of: hostingView, preferredEdge: .maxY)
+    }
+
+    private func showOutputDevices(anchor: CGRect) {
+        guard let hostingView else { return }
+        let audio = AudioOutput.shared
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        let heading = NSMenuItem(title: L10n.t("Sound Output"), action: nil, keyEquivalent: "")
+        heading.isEnabled = false
+        menu.addItem(heading)
+        for device in audio.devices {
+            let item = NSMenuItem(title: device.name, action: #selector(DeckMenuTarget.selectOutput(_:)),
+                                  keyEquivalent: "")
+            item.target = DeckMenuTarget.shared
+            item.representedObject = device.id
+            item.state = device.id == audio.currentID ? .on : .off
+            item.image = NSImage(systemSymbolName: device.symbol, accessibilityDescription: nil)
+            menu.addItem(item)
+        }
+        menu.addItem(.separator())
+        let settings = NSMenuItem(title: L10n.t("Sound Settings…"), action: #selector(DeckMenuTarget.openSoundSettings(_:)),
+                                  keyEquivalent: "")
+        settings.target = DeckMenuTarget.shared
+        menu.addItem(settings)
+        holdsOpen += 1
+        menu.popUp(positioning: nil, at: NSPoint(x: anchor.minX, y: anchor.maxY), in: hostingView)
+        holdsOpen = max(0, holdsOpen - 1)
+        cursorMoved()
+    }
+
+    /// The search field was clicked: the panel takes the keyboard, without
+    /// bringing NotchDeck forward — the app you were in stays the active one.
+    private func beginTyping() {
+        guard let panel else { return }
+        panel.acceptsKeyboard = true
+        panel.makeKey()
+    }
+
+    /// And gives it back. A panel cannot simply stop being key; ordering it
+    /// out and straight back in hands key status back to the app that had it.
+    func endTyping() {
+        guard let panel, panel.acceptsKeyboard else { return }
+        panel.acceptsKeyboard = false
+        if panel.isKeyWindow {
+            panel.orderOut(nil)
+            if !Runtime.isUnderTest { panel.orderFrontRegardless() }
+        }
+    }
+
+    // MARK: NotchDropTarget
+
+    func dragUpdated(_ info: NSDraggingInfo, at point: CGPoint) -> NSDragOperation {
+        // The vault's own files dragged back in: nothing to do.
+        guard info.draggingSource as? VaultDragSource == nil, model.vaultIndex != nil,
+              VaultDrop.canRead(info.draggingPasteboard),
+              hostingView?.interactiveRects.contains(where: { $0.contains(point) }) == true
+        else {
+            if VaultStore.shared.isDropTargeted { VaultStore.shared.isDropTargeted = false }
+            return []
+        }
+        if !VaultStore.shared.isDropTargeted { VaultStore.shared.isDropTargeted = true }
+        if let index = model.vaultIndex, model.hoveredIndex != index, model.isExpanded {
+            clearHoverWork?.cancel()
+            clearHoverWork = nil
+            withAnimation(.spring(response: 0.18, dampingFraction: 0.85)) { model.hoveredIndex = index }
+        }
+        return .copy
+    }
+
+    func dragExited() {
+        VaultStore.shared.isDropTargeted = false
+    }
+
+    func performDrop(_ info: NSDraggingInfo, at point: CGPoint) -> Bool {
+        VaultStore.shared.isDropTargeted = false
+        guard info.draggingSource as? VaultDragSource == nil, model.vaultIndex != nil,
+              let payload = VaultDrop.read(info.draggingPasteboard) else { return false }
+        return VaultStore.shared.accept(payload)
+    }
+}
+
+/// Hears the share sheet close, chosen or not.
+final class ShareDelegate: NSObject, NSSharingServicePickerDelegate {
+    private let closed: @MainActor () -> Void
+
+    init(closed: @escaping @MainActor () -> Void) {
+        self.closed = closed
+    }
+
+    func sharingServicePicker(_ picker: NSSharingServicePicker, didChoose service: NSSharingService?) {
+        MainActor.assumeIsolated { closed() }
+    }
+}
+
 
 
 /// A menu item needs an Objective-C target, which a `@MainActor` Swift class

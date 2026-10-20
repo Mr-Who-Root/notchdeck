@@ -71,6 +71,9 @@ final class ClipboardMonitor: ObservableObject {
 
     /// How many unpinned clips are kept. Pinned ones never age out.
     var limit = 50 { didSet { trim(); save() } }
+    /// Strips the formatting from every piece of rich text copied, so what is
+    /// pasted anywhere is plain text.
+    var alwaysPlainText = false
     /// Whether text, links and files survive a relaunch.
     var remembersHistory = true {
         didSet {
@@ -162,6 +165,63 @@ final class ClipboardMonitor: ObservableObject {
         guard var item = Self.read(pasteboard) else { return }
         item.sourceApp = frontmost?.localizedName
         record(item)
+        if alwaysPlainText, item.kind == .text || item.kind == .link { stripFormatting() }
+    }
+
+    /// Rich-text flavours a copy can carry beside its plain string.
+    static let richTypes: Set<String> = [
+        NSPasteboard.PasteboardType.rtf.rawValue,
+        NSPasteboard.PasteboardType.rtfd.rawValue,
+        NSPasteboard.PasteboardType.html.rawValue,
+        "com.apple.flat-rtfd",
+        "com.apple.webarchive",
+        "Apple Web Archive pasteboard type",
+        "com.microsoft.word.doc",
+    ]
+
+    /// Whether what is on the clipboard is text with formatting, and nothing
+    /// else — never files or an image, which have no plain form to fall to.
+    static func hasRichText(_ pasteboard: NSPasteboard) -> Bool {
+        let types = Set((pasteboard.types ?? []).map(\.rawValue))
+        guard pasteboard.string(forType: .string) != nil, !types.isDisjoint(with: richTypes) else { return false }
+        let files = NSPasteboard.PasteboardType.fileURL.rawValue
+        let images = [NSPasteboard.PasteboardType.png.rawValue, NSPasteboard.PasteboardType.tiff.rawValue]
+        return !types.contains(files) && types.isDisjoint(with: images)
+    }
+
+    /// Replaces rich text on the clipboard with the same text, plain. Returns
+    /// whether there was anything to strip.
+    @discardableResult
+    func stripFormatting() -> Bool {
+        guard Self.hasRichText(pasteboard), let string = pasteboard.string(forType: .string) else { return false }
+        pasteboard.clearContents()
+        pasteboard.setString(string, forType: .string)
+        // Ours: the same clip, not a new one.
+        lastChangeCount = pasteboard.changeCount
+        return true
+    }
+
+    /// Puts text on the clipboard — a snippet — and into the history.
+    func copyText(_ text: String) {
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        lastChangeCount = pasteboard.changeCount
+        let item = Item(kind: .text, text: text, copiedAt: Date())
+        record(item)
+        flashCopied(items.first?.id)
+    }
+
+    /// The clips whose text has every word of the query in it, in any case
+    /// and any order. Files match on their names; images never do.
+    static func filter(_ items: [Item], query: String) -> [Item] {
+        let words = query.lowercased().split(whereSeparator: \.isWhitespace).map(String.init)
+        guard !words.isEmpty else { return items }
+        return items.filter { item in
+            guard item.kind != .image else { return false }
+            let haystack = (item.kind == .file ? item.fileURLs.map(\.lastPathComponent).joined(separator: " ")
+                                               : item.text).lowercased()
+            return words.allSatisfy { haystack.contains($0) }
+        }
     }
 
     /// Pure apart from the pasteboard it is handed, for the tests.
@@ -236,8 +296,12 @@ final class ClipboardMonitor: ObservableObject {
         var moved = item
         moved.copiedAt = Date()
         record(moved)
-        lastCopiedID = item.id
-        let id = item.id
+        flashCopied(item.id)
+    }
+
+    /// The card's "Copied" for a moment.
+    private func flashCopied(_ id: UUID?) {
+        lastCopiedID = id
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             MainActor.assumeIsolated {
                 if self?.lastCopiedID == id { self?.lastCopiedID = nil }

@@ -136,6 +136,16 @@ struct NotchRootView: View {
                             x: model.edge.outward.x * Design.px(24),
                             y: model.edge.outward.y * Design.px(24)
                         )))
+                } else if let live = model.activeLive, model.isExpanded, model.hoveredIndex == nil {
+                    // Something happening right now, on the notch's middle.
+                    LiveCard(event: live,
+                             direction: model.edge.tooltipDirection,
+                             tailOffset: model.notchMiddleAlong - liveCardAlong)
+                        .position(liveCardCentre(place))
+                        .transition(.opacity.combined(with: .offset(
+                            x: model.edge.outward.x * Design.px(24),
+                            y: model.edge.outward.y * Design.px(24)
+                        )))
                 } else if let resetEvent = model.activeResetAlert,
                    model.isExpanded,
                    model.hoveredIndex == nil {
@@ -226,6 +236,7 @@ struct NotchRootView: View {
         .environment(\.usageCriticalLimit, model.criticalLimit)
         .environment(\.colorTransitionStyle, model.colorTransitionStyle)
         .environment(\.busyIndicatorStyle, model.busyIndicatorStyle)
+        .environment(\.deckAction, { action, rect in model.onDeckAction?(action, rect) })
         .onAppear { arcSeparation = arcsOut ? 1 : 0 }
         .onChange(of: arcsOut) { _, open in
             // Both ways as motion, from wherever it is: out as the notch opens,
@@ -736,6 +747,19 @@ struct NotchRootView: View {
         let size = UpdateCard.size(for: model.edge.tooltipDirection)
         let across = model.edge.isVertical ? size.width : size.height
         return place.point(along: updateCardAlong,
+                           across: model.tooltipInset + (NotchLayout.tailLength + across) / 2)
+    }
+
+    /// The live card is centred on the notch's middle, kept on the screen —
+    /// the update card's place, since the two never show together.
+    private var liveCardAlong: CGFloat {
+        model.cardAlong(centredOn: model.notchMiddleAlong,
+                        length: model.edge.isVertical ? LiveCard.cardHeight : NotchLayout.cardWidth)
+    }
+
+    private func liveCardCentre(_ place: NotchPlacement) -> CGPoint {
+        let across = model.edge.isVertical ? NotchLayout.cardWidth : LiveCard.cardHeight
+        return place.point(along: liveCardAlong,
                            across: model.tooltipInset + (NotchLayout.tailLength + across) / 2)
     }
 

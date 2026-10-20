@@ -778,7 +778,23 @@ struct SettingsView: View {
         Form {
             Section(L10n.t("Now Playing")) {
                 Toggle(L10n.t("Show what's playing"), isOn: $preferences.showsNowPlaying)
-                Text(L10n.t("Music, Spotify, podcasts, browser tabs — whatever macOS shows in Control Center. Click the cell to play or pause; hover it for the track, a scrubber and skip buttons."))
+                Text(L10n.t("Music, Spotify, podcasts, browser tabs — whatever macOS shows in Control Center. Click the cell to play or pause; hover it for the track, a scrubber, skip buttons, the volume and where the sound goes."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section(L10n.t("Next Meeting")) {
+                Toggle(L10n.t("Show your next meeting"), isOn: $preferences.showsMeeting)
+                MeetingAccessRow()
+                    .disabled(!preferences.showsMeeting)
+                Picker(L10n.t("Remind me"), selection: $preferences.meetingHeadsUpMinutes) {
+                    ForEach(Preferences.meetingHeadsUpChoices, id: \.self) { minutes in
+                        Text(minutes == 0 ? L10n.t("Never") : L10n.t("\(minutes) min before")).tag(minutes)
+                    }
+                }
+                .disabled(!preferences.showsMeeting)
+                Text(L10n.t("From every calendar in the Calendar app. The notch opens before a meeting with a Join button for Zoom, Google Meet, Teams, Webex and FaceTime links. All-day events and ones you declined are left out."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -794,20 +810,71 @@ struct SettingsView: View {
                     }
                 }
                 .disabled(!preferences.showsClipboard)
-                Text(L10n.t("Hover the cell for your latest clips and click one to copy it again; right-click the notch for the rest. Anything a password manager copies, or marks as concealed, is never recorded. Images are kept in memory only."))
+                Toggle(L10n.t("Always strip formatting from copied text"), isOn: $preferences.clipboardAlwaysPlainText)
+                    .disabled(!preferences.showsClipboard)
+                Text(L10n.t("Hover the cell for your latest clips: search them, click one to copy it again, or ☆ it to keep as a snippet. The Aa button turns rich text on the clipboard into plain text. Anything a password manager copies, or marks as concealed, is never recorded. Images are kept in memory only."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Button(L10n.t("Clear Clipboard History")) { ClipboardMonitor.shared.clear() }
             }
 
+            Section(L10n.t("Snippets")) {
+                SnippetsEditor()
+            }
+
+            Section(L10n.t("Vault")) {
+                Toggle(L10n.t("Show the vault"), isOn: $preferences.showsVault)
+                Toggle(L10n.t("Keep a copy of every file dropped in"), isOn: $preferences.vaultKeepsCopies)
+                    .disabled(!preferences.showsVault)
+                Picker(L10n.t("Clear items"), selection: $preferences.vaultClearAfter) {
+                    ForEach(VaultClearAfter.allCases) { Text($0.title).tag($0) }
+                }
+                .disabled(!preferences.showsVault)
+                Text(preferences.vaultKeepsCopies
+                     ? L10n.t("Drag files onto the notch to hold them, then drag them out to copy them anywhere — hold ⌘ to move. Every file dropped in is copied into the vault, so it stays even if the original goes.")
+                     : L10n.t("Drag files onto the notch to hold them, then drag them out to copy them anywhere — hold ⌘ to move. The vault points to your files rather than copying them; only things from temporary places (Mail attachments, screenshots, a browser's images) get a copy of their own."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack {
+                    Button(L10n.t("Open Vault Folder")) { VaultStore.shared.openFolder() }
+                    Button(L10n.t("Empty Vault")) { VaultStore.shared.clear() }
+                }
+            }
+
             Section(L10n.t("Focus Timer")) {
                 Toggle(L10n.t("Show the focus timer"), isOn: $preferences.showsFocusTimer)
                 Stepper(value: $preferences.focusTimerMinutes, in: 1...180) {
-                    Text(L10n.t("Length: \(preferences.focusTimerMinutes) min"))
+                    Text(L10n.t("Focus length: \(preferences.focusTimerMinutes) min"))
                 }
                 .disabled(!preferences.showsFocusTimer)
-                Text(L10n.t("Click the cell to start or pause. When time is up the notch opens with your session-finished sound — or a banner goes up, if notifications go to the Mac."))
+                Toggle(L10n.t("Take breaks between focus sessions"), isOn: $preferences.focusCycles)
+                    .disabled(!preferences.showsFocusTimer)
+                if preferences.focusCycles {
+                    Stepper(value: $preferences.focusShortBreakMinutes, in: 1...60) {
+                        Text(L10n.t("Short break: \(preferences.focusShortBreakMinutes) min"))
+                    }
+                    Stepper(value: $preferences.focusLongBreakMinutes, in: 1...90) {
+                        Text(L10n.t("Long break: \(preferences.focusLongBreakMinutes) min"))
+                    }
+                    Stepper(value: $preferences.focusLongBreakEvery, in: 2...8) {
+                        Text(L10n.t("Long break after \(preferences.focusLongBreakEvery) sessions"))
+                    }
+                    Toggle(L10n.t("Start the next phase by itself"), isOn: $preferences.focusAutoStartsNext)
+                }
+                FocusShortcutsRows(preferences: preferences)
+                    .disabled(!preferences.showsFocusTimer)
+                Text(L10n.t("Click the cell to start or pause. When time is up the notch opens with your session-finished sound — or a banner goes up, if notifications go to the Mac. Finished sessions add up in the card, day by day."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section(L10n.t("Live Status")) {
+                Toggle(L10n.t("Open the notch when the charger goes in or out"), isOn: $preferences.liveCharging)
+                Toggle(L10n.t("Show downloads and AirDrop while they run"), isOn: $preferences.liveDownloads)
+                Text(L10n.t("Downloads from Safari, Chrome and AirDrop get a cell of their own while they run, and the notch opens as each one lands, with Open, Show in Finder and Add to Vault."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

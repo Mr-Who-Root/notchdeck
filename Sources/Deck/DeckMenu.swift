@@ -1,4 +1,5 @@
 import AppKit
+import CoreAudio
 
 /// **The deck on the notch's right-click menu**: the whole clipboard history
 /// (the card has room for the latest few), the transport for what is playing,
@@ -13,8 +14,15 @@ enum DeckMenu {
         if tools.contains(.nowPlaying), let track = NowPlayingMonitor.shared.track {
             items.append(nowPlayingItem(track))
         }
+        if tools.contains(.meeting), let next = MeetingMonitor.shared.next {
+            let title = next.joinURL != nil ? L10n.t("Join “\(next.title)”") : L10n.t("Show “\(next.title)” in Calendar")
+            items.append(item(title, #selector(DeckMenuTarget.joinMeeting(_:))))
+        }
         if tools.contains(.clipboard) {
             items.append(clipboardItem())
+        }
+        if tools.contains(.vault) {
+            items.append(vaultItem())
         }
         if tools.contains(.timer) {
             let timer = FocusTimer.shared
@@ -81,6 +89,35 @@ enum DeckMenu {
         return parent
     }
 
+    private static func vaultItem() -> NSMenuItem {
+        let parent = NSMenuItem(title: L10n.t("Vault"), action: nil, keyEquivalent: "")
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        let vault = VaultStore.shared
+        if vault.items.isEmpty {
+            let empty = NSMenuItem(title: L10n.t("Drag files onto the notch to hold them"), action: nil, keyEquivalent: "")
+            empty.isEnabled = false
+            menu.addItem(empty)
+        }
+        for file in vault.items.prefix(clipLimit) {
+            let entry = item(file.name, #selector(DeckMenuTarget.revealVaultItem(_:)))
+            entry.representedObject = file.id
+            let icon = NSWorkspace.shared.icon(forFile: file.path)
+            icon.size = NSSize(width: 16, height: 16)
+            entry.image = icon
+            entry.isEnabled = !vault.missing.contains(file.id)
+            menu.addItem(entry)
+        }
+        menu.addItem(.separator())
+        menu.addItem(item(L10n.t("Open Vault Folder"), #selector(DeckMenuTarget.openVaultFolder(_:))))
+        if !vault.items.isEmpty {
+            menu.addItem(item(L10n.t("Empty Vault"), #selector(DeckMenuTarget.emptyVault(_:))))
+        }
+        parent.submenu = menu
+        parent.isEnabled = true
+        return parent
+    }
+
     /// One line, at most 60 characters.
     static func title(for clip: ClipboardMonitor.Item) -> String {
         let line = clip.preview
@@ -118,5 +155,36 @@ final class DeckMenuTarget: NSObject {
 
     @objc func toggleTimer(_ sender: NSMenuItem) {
         FocusTimer.shared.toggle()
+    }
+
+    @objc func joinMeeting(_ sender: NSMenuItem) {
+        guard let next = MeetingMonitor.shared.next else { return }
+        if next.joinURL != nil { MeetingMonitor.shared.join(next) } else { MeetingMonitor.shared.openCalendar(next) }
+    }
+
+    @objc func revealVaultItem(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID,
+              let file = VaultStore.shared.items.first(where: { $0.id == id }) else { return }
+        VaultStore.shared.reveal(file)
+    }
+
+    @objc func openVaultFolder(_ sender: NSMenuItem) {
+        VaultStore.shared.openFolder()
+    }
+
+    @objc func emptyVault(_ sender: NSMenuItem) {
+        VaultStore.shared.clear()
+    }
+
+    @objc func selectOutput(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? AudioDeviceID,
+              let device = AudioOutput.shared.devices.first(where: { $0.id == id }) else { return }
+        AudioOutput.shared.select(device)
+    }
+
+    @objc func openSoundSettings(_ sender: NSMenuItem) {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.Sound-Settings.extension") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }

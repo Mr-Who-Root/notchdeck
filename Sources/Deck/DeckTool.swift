@@ -2,7 +2,9 @@ import AppKit
 import SwiftUI
 
 /// **The deck's own cells** — the tools NotchDeck carries beside the usage
-/// rings: what is playing, what was copied, and a focus timer.
+/// rings: what is playing, the next meeting, what was copied, the files held
+/// in the vault, a focus timer, and — only while something is downloading —
+/// the downloads.
 ///
 /// Each one rides the notch as a cell of its own, after the providers, so it
 /// is placed, hovered, carried and folded by exactly the machinery the rings
@@ -13,15 +15,21 @@ import SwiftUI
 /// of tools does, and the panel is resized only then.
 enum DeckTool: String, CaseIterable, Codable, Identifiable, Equatable {
     case nowPlaying
+    case meeting
     case clipboard
+    case vault
     case timer
+    /// Shown only while a download or AirDrop is under way — see `TransferMonitor`.
+    case transfers
 
     var id: String { rawValue }
 
     /// The tools switched on, in the order the notch draws them.
-    static func enabled(nowPlaying: Bool, clipboard: Bool, timer: Bool) -> [DeckTool] {
-        [nowPlaying ? .nowPlaying : nil, clipboard ? .clipboard : nil, timer ? .timer : nil]
-            .compactMap { $0 }
+    static func enabled(nowPlaying: Bool, clipboard: Bool, timer: Bool,
+                        vault: Bool = false, meeting: Bool = false, transfers: Bool = false) -> [DeckTool] {
+        let switches: [DeckTool: Bool] = [.nowPlaying: nowPlaying, .meeting: meeting, .clipboard: clipboard,
+                                          .vault: vault, .timer: timer, .transfers: transfers]
+        return allCases.filter { switches[$0] == true }
     }
 
     static let cellPrefix = "deck."
@@ -38,8 +46,11 @@ enum DeckTool: String, CaseIterable, Codable, Identifiable, Equatable {
     var title: String {
         switch self {
         case .nowPlaying: return L10n.t("Now Playing")
+        case .meeting:    return L10n.t("Next Meeting")
         case .clipboard:  return L10n.t("Clipboard")
+        case .vault:      return L10n.t("Vault")
         case .timer:      return L10n.t("Focus Timer")
+        case .transfers:  return L10n.t("Downloads")
         }
     }
 
@@ -47,8 +58,11 @@ enum DeckTool: String, CaseIterable, Codable, Identifiable, Equatable {
     var symbol: String {
         switch self {
         case .nowPlaying: return "music.note"
+        case .meeting:    return "calendar"
         case .clipboard:  return "doc.on.clipboard"
+        case .vault:      return "tray"
         case .timer:      return "timer"
+        case .transfers:  return "arrow.down"
         }
     }
 
@@ -64,8 +78,11 @@ enum DeckTool: String, CaseIterable, Codable, Identifiable, Equatable {
     var cardHeight: CGFloat {
         switch self {
         case .nowPlaying: return DeckLayout.nowPlayingHeight
+        case .meeting:    return DeckLayout.meetingHeight
         case .clipboard:  return DeckLayout.clipboardHeight
+        case .vault:      return DeckLayout.vaultHeight
         case .timer:      return DeckLayout.timerHeight
+        case .transfers:  return DeckLayout.transfersHeight
         }
     }
 }
@@ -87,9 +104,29 @@ enum DeckLayout {
     static let controlHeight = Design.px(72)
     static let progressHeight = NotchLayout.barHeight
 
-    /// How many clips the card lists; the rest are a right-click away.
+    /// How many clips the card lists; the rest are a right-click away, or a
+    /// search away.
     static let clipboardRows = 6
     static let clipboardRowHeight = NotchLayout.cardBodyLineHeight + Design.px(18)
+    /// The search field and the Recent/Snippets switch under the title.
+    static let searchHeight = Design.px(50)
+    static let searchToList = Design.px(12)
+
+    /// The volume row under the transport controls.
+    static let volumeRowHeight = Design.px(52)
+
+    /// How many files the vault card lists before it scrolls.
+    static let vaultRows = 5
+    static let vaultRowHeight = NotchLayout.cardBodyLineHeight + Design.px(22)
+
+    /// How many downloads the card lists at once.
+    static let transferRows = 3
+    static var transferRowHeight: CGFloat {
+        NotchLayout.cardBodyLineHeight + NotchLayout.labelToBar + progressHeight + Design.px(14)
+    }
+
+    /// The seven days of focus under the timer: a line of text and a row of bars.
+    static let focusBarsHeight = Design.px(40)
 
     static let timerDigitsFont = NSFont.monospacedDigitSystemFont(
         ofSize: Design.fontSize(capPixels: 62), weight: .semibold)
@@ -108,10 +145,15 @@ enum DeckLayout {
             + progressHeight + NotchLayout.labelToBar + NotchLayout.cardBodyLineHeight
             + NotchLayout.blockSpacing
             + controlHeight
+            + volumeRowHeight
     }
 
+    /// Where the clipboard's rows start, under the title, the search field
+    /// and the gap after it.
+    static var clipboardListTop: CGFloat { header + searchHeight + searchToList }
+
     static var clipboardHeight: CGFloat {
-        padding + header + CGFloat(clipboardRows) * clipboardRowHeight
+        padding + clipboardListTop + CGFloat(clipboardRows) * clipboardRowHeight
     }
 
     static var timerHeight: CGFloat {
@@ -120,6 +162,23 @@ enum DeckLayout {
             + NotchLayout.labelToBar + progressHeight
             + NotchLayout.blockSpacing + chipHeight
             + NotchLayout.blockSpacing + controlHeight
+            + NotchLayout.blockSpacing + NotchLayout.cardBodyLineHeight + Design.px(8) + focusBarsHeight
+    }
+
+    static var vaultHeight: CGFloat {
+        padding + header + CGFloat(vaultRows) * vaultRowHeight
+            + NotchLayout.blockSpacing + chipHeight
+    }
+
+    static var meetingHeight: CGFloat {
+        padding + header
+            + NotchLayout.cardTitleLineHeight + 2 * NotchLayout.cardBodyLineHeight
+            + NotchLayout.blockSpacing + chipHeight
+            + NotchLayout.blockSpacing + 3 * NotchLayout.cardBodyLineHeight
+    }
+
+    static var transfersHeight: CGFloat {
+        padding + header + CGFloat(transferRows) * transferRowHeight
     }
 
     /// Minutes and seconds, or hours too once there are any: "3:07", "1:02:45".
