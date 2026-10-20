@@ -32,6 +32,24 @@ enum ReleaseNotes {
     static var all: [ReleaseNote] {
         [
             ReleaseNote(
+                version: "1.24.1",
+                headline: L10n.t("On a Mac with a notch, the top edge now drops down out of it."),
+                changes: [
+                    ReleaseNote.Change(
+                        title: L10n.t("Drops down from the notch"),
+                        detail: L10n.t("Hover the Mac's notch and the deck grows down out of it, the rings in a row beneath it. Folded, it is the notch and nothing more. The old layout beside the notch is in Settings → Appearance.")
+                    ),
+                    ReleaseNote.Change(
+                        title: L10n.t("Steadier hover"),
+                        detail: L10n.t("Reaching the notch opens it without popping a card; a card opens when you move onto a ring.")
+                    ),
+                    ReleaseNote.Change(
+                        title: L10n.t("Small things"),
+                        detail: L10n.t("Settings reopens on the pane you last looked at, and the clipboard card says how to use it while the history is short.")
+                    ),
+                ]
+            ),
+            ReleaseNote(
                 version: "1.24.0",
                 headline: L10n.t("NotchDeck: Now Playing, clipboard history and a focus timer, right beside the rings."),
                 changes: [
