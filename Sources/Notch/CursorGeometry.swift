@@ -26,6 +26,14 @@ final class CursorGeometry {
         model.ringAlong(index: index, in: cellWing, spacing: cellSpacing)
     }
 
+    /// Whether a point is clear of the display's hole the bar drops from —
+    /// the only part of the bar the cells are drawn in. The hole itself opens
+    /// the notch and is no cell's: reaching for the notch must not pop a card.
+    func isBelowTheHole(_ local: CGPoint) -> Bool {
+        guard let hole = model.dropsFrom else { return true }
+        return placement.across(of: local) >= hole.height
+    }
+
     func cellIndex(along: CGFloat) -> Int? {
         guard model.alongWithin(along, of: cellWing) != nil else { return nil }
         let pitch = (NotchLayout.cellAlong(for: model.edge) + cellSpacing) * model.sizeScale

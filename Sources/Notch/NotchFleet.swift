@@ -67,6 +67,7 @@ final class NotchFleet {
     private var shutRingsWhenSpent: Bool = true
     /// The deck's cells, the same on every display.
     private var deckTools: [DeckTool] = []
+    private var topEdgeStyle: TopEdgeStyle = .besideNotch
     private var foldsForFullScreen = true
     private var surfaceStyle: NotchSurfaceStyle = .glass
     private var deepSeekPricingEnabled = true
@@ -239,6 +240,16 @@ final class NotchFleet {
         self.deckTools = deckTools
         for controller in controllers.values {
             controller.model.deckTools = deckTools
+        }
+    }
+
+    /// How the top edge meets a hardware notch. The shape and the window both
+    /// change with it, so each panel is laid out again.
+    func apply(topEdgeStyle: TopEdgeStyle) {
+        self.topEdgeStyle = topEdgeStyle
+        for controller in controllers.values where controller.model.topEdgeStyle != topEdgeStyle {
+            controller.model.topEdgeStyle = topEdgeStyle
+            controller.relocate()
         }
     }
 
@@ -557,6 +568,7 @@ final class NotchFleet {
         controller.onMoveToEdge = onMoveToEdge
         controller.signInItems = signInItems
         controller.model.deckTools = deckTools
+        controller.model.topEdgeStyle = topEdgeStyle
         controller.model.updateSnapshots(snapshots)
         controller.model.thinkingModels = thinkingModels
         controller.model.localActivities = mergedLocalActivities

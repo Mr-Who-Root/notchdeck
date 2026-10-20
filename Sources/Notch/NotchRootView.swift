@@ -585,6 +585,9 @@ struct NotchRootView: View {
                 HStack(spacing: model.cellSpacing) { stack }
                     .padding(.leading, leadIn)
                     .frame(height: model.contentDepth)
+                    // Below the Mac's notch when dropping from it: the hole has
+                    // no pixels to draw a ring on.
+                    .padding(.top, model.dropInset)
             }
         }
         .allowsHitTesting(model.isExpanded)

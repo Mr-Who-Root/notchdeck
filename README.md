@@ -280,9 +280,15 @@ The notch lives on any of the four screen edges. Right and left keep a
 vertical column; top and bottom lay the readings out side by side. It pins
 itself to the physical screen edge, so showing or hiding the Dock does not
 move it. Hold Option and drag to move along the selected edge; each edge
-remembers its position. On a Mac with a hardware notch, the top
-placement takes its exact shape, so the two read as one rather than as a bar
-parked underneath it.
+remembers its position.
+
+On a Mac with a hardware notch, the top placement **drops down from it**: at
+rest there is nothing but the Mac's own notch, and hovering it grows a black
+panel down out of the notch with the rings and the deck's cells in a row
+beneath it — the camera housing stays inside the top of the shape, where it
+has no pixels to draw on anyway. Prefer the readings in the menu bar either
+side of the notch instead? **Settings → Appearance → At the Mac's notch →
+Beside the notch** keeps them at the notch's own height.
 
 Along that edge it sits wherever you put it: hold ⌥ and drag the notch to
 slide it, and each edge remembers where you left it, so moving the notch to the

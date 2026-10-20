@@ -420,7 +420,16 @@ struct SettingsView: View {
     /// The providers the menu bar can show, from the same snapshots it draws.
     @State private var menuBarChoices: [MenuBarChoice] = []
     @State private var displays: [DisplayOption] = []
-    @State private var selection: SettingsSection = .accounts
+    /// Opens on the pane last looked at, the way System Settings does.
+    @State private var selection: SettingsSection = SettingsView.restoredSection
+
+    static let sectionKey = "settingsSection"
+
+    private static var restoredSection: SettingsSection {
+        UserDefaults.standard.string(forKey: sectionKey)
+            .flatMap(SettingsSection.init(rawValue:))
+            .flatMap { SettingsSection.visible.contains($0) ? $0 : nil } ?? .accounts
+    }
     /// Whether Accounts shows its provider panes. Remembered, so someone who
     /// folds the group away finds it folded next time.
     @AppStorage("settingsAccountsExpanded") private var accountsExpanded = true
@@ -449,8 +458,9 @@ struct SettingsView: View {
     /// Whether this Mac draws the notch as its own cutout — the one placement
     /// where the hardware sets the size outright, and so the only one where the
     /// reading under a ring is paid for out of the ring.
+    /// Only beside the Mac's notch: dropping from it, the size setting stands.
     private var sizeIsDecidedByTheHardware: Bool {
-        preferences.notchEdge == .top
+        preferences.notchEdge == .top && preferences.topEdgeStyle == .besideNotch
             && NSScreen.screens.contains { $0.hardwareNotch != nil }
     }
 
@@ -666,6 +676,7 @@ struct SettingsView: View {
         // Opening a provider's pane from elsewhere must not land on a row
         // that is folded out of sight.
         .onChange(of: selection) { section in
+            UserDefaults.standard.set(section.rawValue, forKey: SettingsView.sectionKey)
             if section == .accounts { accounts = providers() }
             if SettingsSection.providerPanes.contains(section) { accountsExpanded = true }
         }
@@ -1008,6 +1019,19 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                // Only where there is a hardware notch for the top edge to meet.
+                if preferences.notchEdge == .top, NSScreen.screens.contains(where: { $0.hardwareNotch != nil }) {
+                    Picker(L10n.t("At the Mac's notch"), selection: $preferences.topEdgeStyle) {
+                        ForEach(TopEdgeStyle.allCases) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text(preferences.topEdgeStyle.explanation)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 // Offered only where there is a glass to choose. Below macOS 26
                 // the choice has one possible answer, and a picker that cannot

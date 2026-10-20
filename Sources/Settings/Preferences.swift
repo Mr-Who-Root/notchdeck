@@ -120,6 +120,11 @@ final class Preferences: ObservableObject {
         didSet { defaults.set(foldsForFullScreen, forKey: Keys.foldsForFullScreen) }
     }
 
+    /// How the top edge meets a Mac's own notch — see `TopEdgeStyle`.
+    @Published var topEdgeStyle: TopEdgeStyle {
+        didSet { defaults.set(topEdgeStyle.rawValue, forKey: Keys.topEdgeStyle) }
+    }
+
     // MARK: - The deck's own cells
 
     /// What is playing, with transport controls.
@@ -633,6 +638,7 @@ final class Preferences: ObservableObject {
         static let hasLaunched = "hasLaunchedBefore"
         static let visibility = "notchVisibility"
         static let foldsForFullScreen = "foldsForFullScreen"
+        static let topEdgeStyle = "topEdgeStyle"
         static let showsNowPlaying = "deckShowsNowPlaying"
         static let showsClipboard = "deckShowsClipboard"
         static let showsFocusTimer = "deckShowsFocusTimer"
@@ -958,6 +964,7 @@ final class Preferences: ObservableObject {
         // Absent means the fold that has shipped since full-screen detection
         // exists — the setting silences it, it does not introduce it.
         self.foldsForFullScreen = defaults.object(forKey: Keys.foldsForFullScreen) as? Bool ?? true
+        self.topEdgeStyle = (defaults.string(forKey: Keys.topEdgeStyle)).flatMap(TopEdgeStyle.init(rawValue:)) ?? .dropDown
         self.showsNowPlaying = defaults.object(forKey: Keys.showsNowPlaying) as? Bool ?? true
         self.showsClipboard = defaults.object(forKey: Keys.showsClipboard) as? Bool ?? true
         self.showsFocusTimer = defaults.object(forKey: Keys.showsFocusTimer) as? Bool ?? true

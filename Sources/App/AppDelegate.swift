@@ -1149,6 +1149,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
         wireDeck(preferences: preferences, fleet: fleet, demo: isDemo)
+        // Before the first controller exists, so it is laid out this way from
+        // its first frame rather than relaid a moment later.
+        fleet.apply(topEdgeStyle: preferences.topEdgeStyle)
 
         fleet.apply(displayPreference: preferences.displayPreference)
         fleet.apply(alongOffset: preferences.offset(for: preferences.notchEdge))
@@ -1215,6 +1218,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if tools.contains(.clipboard) { ClipboardMonitor.shared.start() } else { ClipboardMonitor.shared.stop() }
                 if !tools.contains(.timer) { FocusTimer.shared.reset() }
             }
+            .store(in: &cancellables)
+
+        preferences.$topEdgeStyle
+            .dropFirst()
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak fleet] in fleet?.apply(topEdgeStyle: $0) }
             .store(in: &cancellables)
 
         preferences.$clipboardRemembersHistory

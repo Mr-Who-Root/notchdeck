@@ -315,6 +315,12 @@ private struct ClipboardCard: View {
                             onRemove: { monitor.remove(item) })
                         .frame(height: DeckLayout.clipboardRowHeight)
                 }
+                // The rows a short history leaves empty say how to use it,
+                // rather than standing there blank.
+                if items.count < DeckLayout.clipboardRows - 1 {
+                    Spacer().frame(height: NotchLayout.blockSpacing)
+                    CardNote(text: L10n.t("Click a clip to copy it again. Hover a long one to read all of it."))
+                }
             }
         }
     }

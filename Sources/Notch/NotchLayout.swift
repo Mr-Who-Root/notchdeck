@@ -50,6 +50,11 @@ enum NotchLayout {
     /// The pill is small, so the region that wakes it is deliberately larger.
     static let pillHotZone = Design.px(90)
 
+    /// Dropping from a Mac's own notch, how far the bar's straight body runs
+    /// past each side of the hole, so the hole sits inside the black shape
+    /// with a margin of it either side rather than flush with its corners.
+    static let dropSideMargin = Design.px(40)
+
     // The dock style's floating slab. Plain points, and the one pair of numbers
     // here not quoted from the design frame: the frame has no Dock in it, so
     // both were measured beside the real one. The gap is a distance from the

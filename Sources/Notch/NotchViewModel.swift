@@ -248,7 +248,11 @@ final class NotchViewModel: ObservableObject {
     /// The style actually drawn here: the chosen one resolved for this edge,
     /// after the fallbacks for an older Mac and for Reduce Transparency.
     var drawnSurfaceStyle: NotchSurfaceStyle {
-        reduceTransparency ? .solid : surfaceStyle.resolved(on: edge).effective
+        // Dropping from a Mac's notch the bar is the notch grown larger, and
+        // the hardware's is black: any glass would leave the hole sitting in
+        // it as a black block. The cards keep the chosen style.
+        if reduceTransparency || dropsFrom != nil { return .solid }
+        return surfaceStyle.resolved(on: edge).effective
     }
 
     /// The style the tooltip and cards are drawn with: the chosen one, not
@@ -328,6 +332,36 @@ final class NotchViewModel: ObservableObject {
     /// notch is joined to something at its leading end.
     @Published var cutout: CutoutProximity?
 
+    /// How the top edge meets the display's own notch — see `TopEdgeStyle`.
+    /// Beside it unless the app says otherwise, so a model built on its own
+    /// is the layout the geometry tests describe.
+    @Published var topEdgeStyle: TopEdgeStyle = .besideNotch
+
+    /// **The display's notch the bar drops out of**, in screen points, while it
+    /// does: the top edge, on a display with one, with the bar at the hole and
+    /// `topEdgeStyle` set to drop down. Nil otherwise — and while it is set
+    /// `cutout` is nil, because nothing is joined: the bar is one centred
+    /// shape that spans the hole and keeps everything it draws below it.
+    @Published var dropsFrom: HardwareNotch?
+
+    /// How far below the bezel the contents start, in the notch's own design
+    /// measurements: past the hole, which has no pixels to draw them on.
+    var dropInset: CGFloat {
+        guard let dropsFrom else { return 0 }
+        return dropsFrom.height / max(sizeScale, 0.0001)
+    }
+
+    /// How much longer the bar is drawn, in design measurements, so that its
+    /// straight body spans the hole with `dropSideMargin` either side. Split
+    /// between the two ends, so the readings stay in the middle of it.
+    func dropWidening(cellCount: Int) -> CGFloat {
+        guard let dropsFrom else { return 0 }
+        let needed = dropsFrom.width / max(sizeScale, 0.0001) + 2 * NotchLayout.dropSideMargin
+        let body = NotchLayout.bodyLength(cellCount: cellCount, edge: edge,
+                                          spacing: cellSpacing(cellCount: cellCount))
+        return max(0, needed - body)
+    }
+
     /// Where a ring's centre falls along the panel, on a given copy of the bar.
     func ringAlong(index: Int, in wing: Wing, spacing: CGFloat? = nil) -> CGFloat {
         wing.lead + ringCenter(index: index, spacing: spacing) * sizeScale
@@ -385,9 +419,18 @@ final class NotchViewModel: ObservableObject {
         let settled = screenSize != .zero
         let size = screen.frameValue.size
         if screenSize != size { screenSize = size }
-        let near = NotchGeometry.cutoutProximity(
+        var near = NotchGeometry.cutoutProximity(
             for: screen, edge: edge, alongOffset: alongOffset,
             heldBar: holdsOffTheCutout ? plainBarLength : nil)
+        // **Dropping from the hole instead of joining it.** At the hole, and
+        // not in the hand, the bar is one centred shape spanning it; nothing is
+        // joined, so there is no cutout to lay the bar out around.
+        var drop: HardwareNotch?
+        if topEdgeStyle == .dropDown, !holdsOffTheCutout, near?.joined == true {
+            drop = screen.hardwareNotch
+            near = nil
+        }
+        if dropsFrom != drop { dropsFrom = drop }
         let side = edge == .top && screen.hardwareNotch != nil
             && NotchGeometry.cutoutStanding(alongOffset: alongOffset).atTrailingEnd
         if leavesTheCutoutAtItsTrailingEnd != side { leavesTheCutoutAtItsTrailingEnd = side }
@@ -487,9 +530,13 @@ final class NotchViewModel: ObservableObject {
     /// A flare at both ends, as every edge has always had — plus, at the end
     /// that meets the hole, whatever of the bar is buried inside it, which is
     /// length nobody can see and so length the rings must not be measured from.
-    var leadAllowance: CGFloat { flare + (carriedOnTheLeft ? 0 : cutoutBleed) }
+    var leadAllowance: CGFloat {
+        flare + (carriedOnTheLeft ? 0 : cutoutBleed) + dropWidening(cellCount: snapshots.count) / 2
+    }
 
-    var endAllowance: CGFloat { flare + (carriedOnTheLeft ? cutoutBleed : 0) }
+    var endAllowance: CGFloat {
+        flare + (carriedOnTheLeft ? cutoutBleed : 0) + dropWidening(cellCount: snapshots.count) / 2
+    }
 
     /// **One drawn copy of the notch**, and where along the panel it starts.
     struct Wing: Identifiable, Equatable {
@@ -1222,7 +1269,7 @@ final class NotchViewModel: ObservableObject {
     /// drawn at that size, so this is the seam between the two spaces rather
     /// than a measurement either of them owns.
     var notchDrawnDepth: CGFloat {
-        NotchLayout.bodyDepth(for: edge) * sizeScale
+        NotchLayout.bodyDepth(for: edge) * sizeScale + (dropsFrom?.height ?? 0)
     }
 
     /// The straight part of the shape, flares excluded.
@@ -1422,6 +1469,7 @@ final class NotchViewModel: ObservableObject {
         }
         return screenSize.height / sizeScale
             - NotchLayout.bodyDepth(for: edge)
+            - dropInset
             - edgeGap / sizeScale
             - NotchLayout.tailLength
             - NotchLayout.tailGap
@@ -1437,7 +1485,7 @@ final class NotchViewModel: ObservableObject {
     /// states — see `mergedScale`.
     var notchDepth: CGFloat {
         if mergesWithCutout { return contentDepth }
-        return isExpanded ? NotchLayout.bodyDepth(for: edge) : NotchLayout.pillWidth
+        return isExpanded ? NotchLayout.bodyDepth(for: edge) + dropInset : NotchLayout.pillWidth
     }
 
     /// What the notch folds away to, whether or not it is open right now —
@@ -1461,9 +1509,15 @@ final class NotchViewModel: ObservableObject {
     /// 34pt *below* the menu bar — across the title bar of a window tiled
     /// against the centre of the screen, whose close, minimise and zoom
     /// buttons then opened the notch on approach and disappeared under it.
-    var wakeLength: CGFloat { max(restingLength * sizeScale, wakeBand) }
+    var wakeLength: CGFloat {
+        // Dropping from the hole, the hole is the target — all of it, and no
+        // band past it, for the same reason the join has none.
+        if let dropsFrom { return max(dropsFrom.width, restingLength * sizeScale) }
+        return max(restingLength * sizeScale, wakeBand)
+    }
     var wakeDepth: CGFloat {
-        restingDepth * sizeScale + edgeGap + (mergesWithCutout ? 0 : wakeBand)
+        if let dropsFrom { return max(dropsFrom.height, restingDepth * sizeScale) + edgeGap }
+        return restingDepth * sizeScale + edgeGap + (mergesWithCutout ? 0 : wakeBand)
     }
     private var wakeBand: CGFloat { NotchLayout.pillHotZone }
 
@@ -1481,7 +1535,7 @@ final class NotchViewModel: ObservableObject {
     func shapeLength(cellCount: Int) -> CGFloat {
         NotchLayout.bodyLength(cellCount: cellCount, edge: edge,
                                spacing: cellSpacing(cellCount: cellCount))
-            + leadAllowance + endAllowance
+            + 2 * flare + cutoutBleed + dropWidening(cellCount: cellCount)
     }
 
     /// The panel as it lands on screen, size choice included.
@@ -1500,7 +1554,7 @@ final class NotchViewModel: ObservableObject {
             edge: edge,
             length: cutoutSpan(cellCount: cellCount)
                 + 2 * NotchLayout.slack(for: edge, maxCardHeight: card, notchScale: sizeScale),
-            depth: NotchLayout.bodyDepth(for: edge) * sizeScale + edgeGap
+            depth: NotchLayout.bodyDepth(for: edge) * sizeScale + (dropsFrom?.height ?? 0) + edgeGap
                 + NotchLayout.tooltipDepth(for: edge, maxCardHeight: card)
         )
     }

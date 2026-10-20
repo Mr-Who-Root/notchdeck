@@ -1355,7 +1355,7 @@ final class NotchWindowController {
         if !wasExpanded { geometry = cursorGeometry }
 
         var target: Int?
-        if model.isExpanded, geometry.notchRect.contains(local) {
+        if model.isExpanded, geometry.notchRect.contains(local), geometry.isBelowTheHole(local) {
             target = geometry.cellIndex(along: geometry.placement.along(of: local))
         } else if model.isExpanded, let current = model.hoveredIndex,
                   let card = geometry.tooltipRect(index: current),
@@ -1571,7 +1571,7 @@ final class NotchWindowController {
             setExpanded(true)
             return
         }
-        if notchRect.contains(local),
+        if notchRect.contains(local), cursorGeometry.isBelowTheHole(local),
            let index = cellIndex(along: placement.along(of: local)),
            model.snapshots.indices.contains(index) {
             // A deck tool's cell is its own button: play or pause, start or
