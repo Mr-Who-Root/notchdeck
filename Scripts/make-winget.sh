@@ -14,7 +14,7 @@ REPO=${NOTCHDECK_REPOSITORY:-Mr-Who-Root/notchdeck}
 ID="Mr-Who-Root.NotchDeck"
 SHA=$(shasum -a 256 "$SETUP" | awk '{print toupper($1)}')
 DIR="$OUTDIR/manifests/m/Mr-Who-Root/NotchDeck/$VERSION"
-SCHEMA="1.9.0"
+SCHEMA="1.12.0"
 
 mkdir -p "$DIR"
 
