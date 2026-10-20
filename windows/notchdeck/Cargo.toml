@@ -1,6 +1,6 @@
 [package]
 name = "notchdeck"
-version = "1.24.1"
+version = "1.25.0"
 edition = "2021"
 description = "NotchDeck for Windows — usage notch for Claude, Codex, Cursor and Antigravity, with Now Playing, clipboard history and a focus timer"
 license = "MIT"
