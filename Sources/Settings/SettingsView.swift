@@ -1583,8 +1583,11 @@ struct SettingsView: View {
                 }
 
                 HStack(spacing: 16) {
-                    if let url = ProjectLinks.releaseURL(version: updater.currentVersion) {
-                        Link(L10n.t("Release Notes"), destination: url)
+                    // The notes this build carries: the release's page on
+                    // GitHub does not exist until the version is published.
+                    Button(L10n.t("Release Notes")) {
+                        ReleaseNotesWindow.show(version: updater.currentVersion,
+                                                accent: preferences.accentColor.color)
                     }
                     if let url = ProjectLinks.repositoryURL {
                         Link(L10n.t("GitHub"), destination: url)

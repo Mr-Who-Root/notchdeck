@@ -104,3 +104,58 @@ private final class CloseWatcher: NSObject, NSWindowDelegate {
         MainActor.assumeIsolated { onClose() }
     }
 }
+
+/// **This version's notes, on demand** — Settings → General → Release Notes.
+///
+/// The notes the app was built with, in the What's New dialogue, rather than
+/// the release's page on GitHub: that page only exists once a version is
+/// published, so a build ahead of its release — or a Mac offline — got
+/// GitHub's "Not Found". A version with no note written for it falls back to
+/// the list of every release.
+@MainActor
+enum ReleaseNotesWindow {
+    private static var window: NSWindow?
+    private static var closeWatcher: CloseWatcher?
+
+    static func show(version: String, accent: Color) {
+        if let window {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        guard let note = ReleaseNotes.note(for: version) else {
+            if let url = ProjectLinks.releasesURL { NSWorkspace.shared.open(url) }
+            return
+        }
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: WhatsNewView.width, height: WhatsNewView.height),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = L10n.t("Release Notes")
+        window.contentView = NSHostingView(
+            rootView: WhatsNewView(note: note) { close() }
+                .tint(accent)
+                .environment(\.notchdeckAccentColor, accent)
+        )
+        window.center()
+        window.isReleasedWhenClosed = false
+        let watcher = CloseWatcher { forget() }
+        window.delegate = watcher
+        closeWatcher = watcher
+        self.window = window
+        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    private static func close() {
+        window?.close()
+    }
+
+    private static func forget() {
+        window?.delegate = nil
+        window = nil
+        closeWatcher = nil
+    }
+}
