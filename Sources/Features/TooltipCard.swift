@@ -170,6 +170,9 @@ struct TooltipShell<Content: View>: View {
     /// Which side of the notch the card is on, so the tail goes on the other one.
     let direction: NotchEdge.TooltipDirection
     var tailOffset: CGFloat = 0
+    /// Every card is the frame's width but the live cards, some of which are
+    /// slimmer — see `LiveCard.size(for:)`.
+    var width: CGFloat = NotchLayout.cardWidth
     @ViewBuilder let content: Content
 
     @Environment(\.notchdeckReduceTransparency) private var reduceTransparency
@@ -199,13 +202,13 @@ struct TooltipShell<Content: View>: View {
         ZStack(alignment: .top) {
             RoundedRectangle(cornerRadius: NotchLayout.cardCorner, style: .circular)
                 .fill(surfaceFill)
-                .frame(width: NotchLayout.cardWidth, height: height)
+                .frame(width: width, height: height)
 
             content
                 .padding(NotchLayout.cardPadding)
-                .frame(width: NotchLayout.cardWidth, alignment: .topLeading)
+                .frame(width: width, alignment: .topLeading)
         }
-        .frame(width: NotchLayout.cardWidth, height: height, alignment: .top)
+        .frame(width: width, height: height, alignment: .top)
         .clipShape(
             RoundedRectangle(cornerRadius: NotchLayout.cardCorner, style: .circular)
         )
@@ -224,7 +227,7 @@ struct TooltipShell<Content: View>: View {
             let maxOffset = max(0, (height / 2) - NotchLayout.cardCorner - (size.height / 2))
             return min(max(tailOffset, -maxOffset), maxOffset)
         case .up, .down:
-            let maxOffset = max(0, (NotchLayout.cardWidth / 2) - NotchLayout.cardCorner - (size.width / 2))
+            let maxOffset = max(0, (width / 2) - NotchLayout.cardCorner - (size.width / 2))
             return min(max(tailOffset, -maxOffset), maxOffset)
         }
     }

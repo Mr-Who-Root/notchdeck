@@ -170,20 +170,61 @@ private struct IndeterminateBar: View {
 }
 
 /// **The card a live event opens the notch with** — see `LiveEvent`. One
-/// height for every kind, so the hover region is known before it is drawn.
+/// row: what it is, a line or two about it, and its buttons as small round
+/// icons at the end, sized to what it says rather than to the tallest event.
+/// The charger's is a slim pill of its own.
 struct LiveCard: View {
     let event: LiveEvent
     var direction: NotchEdge.TooltipDirection = .leading
     var tailOffset: CGFloat = 0
 
-    static var cardHeight: CGFloat {
-        2 * NotchLayout.cardPadding + Design.px(96) + NotchLayout.blockSpacing + DeckLayout.chipHeight
+    /// The card's own size, without its tail — worked out here, not by
+    /// SwiftUI, so the hover region is known before it is drawn.
+    static func size(for event: LiveEvent) -> CGSize {
+        let row = rowHeight(for: event)
+        let width: CGFloat
+        switch event {
+        case .power: width = Design.px(500)
+        default: width = NotchLayout.cardWidth
+        }
+        return CGSize(width: width, height: 2 * NotchLayout.cardPadding + row)
+    }
+
+    static let glyphSize = Design.px(64)
+
+    static func rowHeight(for event: LiveEvent) -> CGFloat {
+        let text = NotchLayout.cardTitleLineHeight
+            + (detail(for: event) == nil ? 0 : Design.px(2) + NotchLayout.cardBodyLineHeight)
+        return max(glyphSize, text)
+    }
+
+    static func title(for event: LiveEvent) -> String {
+        switch event {
+        case .power(let reading): return reading.title
+        case .downloaded(let name, _): return name
+        case .focus(let title, _, _): return title
+        case .meeting(let meeting): return meeting.title
+        }
+    }
+
+    static func detail(for event: LiveEvent) -> String? {
+        switch event {
+        case .power(let reading): return reading.remainingText
+        case .downloaded:
+            return L10n.t("Downloaded")
+        case .focus(_, let detail, _): return detail
+        case .meeting(let meeting):
+            let minutes = Int(ceil(meeting.start.timeIntervalSinceNow / 60))
+            return minutes > 0 ? L10n.t("In \(minutes) min · \(MeetingMonitor.time(meeting.start))")
+                               : L10n.t("Starting now")
+        }
     }
 
     var body: some View {
-        TooltipShell(height: Self.cardHeight, direction: direction, tailOffset: tailOffset) {
+        let size = Self.size(for: event)
+        TooltipShell(height: size.height, direction: direction, tailOffset: tailOffset, width: size.width) {
             LiveCardContent(event: event)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(height: Self.rowHeight(for: event))
         }
     }
 }
@@ -194,29 +235,27 @@ private struct LiveCardContent: View {
     @Environment(\.notchdeckAccentColor) private var accentColor
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: Design.px(24)) {
-                glyph
-                    .frame(width: Design.px(96), height: Design.px(96))
-                VStack(alignment: .leading, spacing: Design.px(4)) {
-                    Text(title)
-                        .font(Typography.cardTitle)
-                        .foregroundStyle(Palette.textPrimary)
+        HStack(spacing: Design.px(16)) {
+            glyph
+            VStack(alignment: .leading, spacing: Design.px(2)) {
+                Text(LiveCard.title(for: event))
+                    .font(Typography.cardTitle)
+                    .foregroundStyle(Palette.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if let detail = LiveCard.detail(for: event) {
+                    Text(detail)
+                        .font(Typography.cardBody)
+                        .monospacedDigit()
+                        .foregroundStyle(secondaryInk)
                         .lineLimit(1)
-                    if let detail {
-                        Text(detail)
-                            .font(Typography.cardBody)
-                            .monospacedDigit()
-                            .foregroundStyle(secondaryInk)
-                            .lineLimit(2)
-                    }
                 }
-                Spacer(minLength: 0)
             }
-            .frame(height: Design.px(96))
-            Spacer().frame(height: NotchLayout.blockSpacing)
-            actions
-                .frame(height: DeckLayout.chipHeight)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Never cut short: the text gives way first.
+            trailing
+                .fixedSize()
+                .layoutPriority(1)
         }
     }
 
@@ -227,70 +266,103 @@ private struct LiveCardContent: View {
         case .downloaded(_, let url):
             Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
                 .resizable()
+                .frame(width: LiveCard.glyphSize, height: LiveCard.glyphSize)
         case .focus(_, _, let onBreak):
-            Image(systemName: onBreak ? "cup.and.saucer.fill" : "timer")
-                .font(.system(size: Design.px(56), weight: .semibold))
-                .foregroundStyle(accentColor)
+            symbolGlyph(onBreak ? "cup.and.saucer.fill" : "timer", color: accentColor)
         case .meeting(let meeting):
-            Image(systemName: meeting.joinURL != nil ? "video.fill" : "calendar")
-                .font(.system(size: Design.px(56), weight: .semibold))
-                .foregroundStyle(meeting.color.map(Color.init(nsColor:)) ?? accentColor)
+            symbolGlyph(meeting.joinURL != nil ? "video.fill" : "calendar",
+                        color: meeting.color.map(Color.init(nsColor:)) ?? accentColor)
         }
     }
 
-    private var title: String {
-        switch event {
-        case .power(let reading): return "\(reading.title) · \(reading.level)%"
-        case .downloaded(let name, _): return name
-        case .focus(let title, _, _): return title
-        case .meeting(let meeting): return meeting.title
-        }
+    private func symbolGlyph(_ name: String, color: Color) -> some View {
+        Image(systemName: name)
+            .font(.system(size: Design.px(38), weight: .semibold))
+            .foregroundStyle(color)
+            .frame(width: LiveCard.glyphSize, height: LiveCard.glyphSize)
+            .background(Circle().fill(color.opacity(0.16)))
     }
 
-    private var detail: String? {
+    /// The charge, or the event's buttons as round icons.
+    @ViewBuilder private var trailing: some View {
         switch event {
-        case .power(let reading): return reading.remainingText
+        case .power(let reading):
+            Text("\(reading.level)%")
+                .font(Typography.cardTitle)
+                .monospacedDigit()
+                .foregroundStyle(reading.onAC ? Color.green : (reading.level <= 20 ? Color.red : Palette.textPrimary))
         case .downloaded(_, let url):
-            return L10n.t("Downloaded to \(url.deletingLastPathComponent().lastPathComponent)")
-        case .focus(_, let detail, _): return detail
-        case .meeting(let meeting):
-            let minutes = Int(ceil(meeting.start.timeIntervalSinceNow / 60))
-            return minutes > 0 ? L10n.t("Starts in \(minutes) min · \(MeetingMonitor.time(meeting.start))")
-                               : L10n.t("Starting now")
-        }
-    }
-
-    @ViewBuilder private var actions: some View {
-        switch event {
-        case .power:
-            EmptyView()
-        case .downloaded(_, let url):
-            HStack(spacing: Design.px(16)) {
-                PillButton(title: L10n.t("Open"), prominent: true) { NSWorkspace.shared.open(url) }
-                PillButton(title: L10n.t("Show in Finder")) {
+            HStack(spacing: Design.px(10)) {
+                RoundAction(symbol: "arrow.up.forward.app", help: L10n.t("Open"), prominent: true) {
+                    NSWorkspace.shared.open(url)
+                }
+                RoundAction(symbol: "magnifyingglass", help: L10n.t("Show in Finder")) {
                     NSWorkspace.shared.activateFileViewerSelecting([url])
                 }
-                .fixedSize(horizontal: true, vertical: false)
                 AddToVaultButton(url: url)
             }
         case .focus:
-            HStack(spacing: Design.px(16)) {
-                let timer = FocusTimer.shared
-                PillButton(title: timer.isRunning ? L10n.t("Pause") : L10n.t("Start"), prominent: true) {
+            let timer = FocusTimer.shared
+            HStack(spacing: Design.px(10)) {
+                RoundAction(symbol: timer.isRunning ? "pause.fill" : "play.fill",
+                            help: timer.isRunning ? L10n.t("Pause") : L10n.t("Start"), prominent: true) {
                     timer.toggle()
                 }
                 if timer.cyclesEnabled {
-                    PillButton(title: L10n.t("Skip")) { timer.skip() }
+                    RoundAction(symbol: "forward.end.fill", help: L10n.t("Skip")) { timer.skip() }
                 }
             }
         case .meeting(let meeting):
-            HStack(spacing: Design.px(16)) {
+            HStack(spacing: Design.px(10)) {
                 if meeting.joinURL != nil {
-                    PillButton(title: L10n.t("Join"), prominent: true) { MeetingMonitor.shared.join(meeting) }
+                    JoinPill { MeetingMonitor.shared.join(meeting) }
                 }
-                PillButton(title: L10n.t("Calendar")) { MeetingMonitor.shared.openCalendar(meeting) }
+                RoundAction(symbol: "calendar", help: L10n.t("Show in Calendar")) {
+                    MeetingMonitor.shared.openCalendar(meeting)
+                }
             }
         }
+    }
+}
+
+/// A round icon button, the live cards' kind of action.
+private struct RoundAction: View {
+    let symbol: String
+    let help: String
+    var prominent = false
+    let action: () -> Void
+    @Environment(\.notchdeckAccentColor) private var accentColor
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: Design.px(24), weight: .semibold))
+                .foregroundStyle(prominent ? accentColor : Palette.textPrimary)
+                .frame(width: Design.px(56), height: Design.px(56))
+                .background(Circle().fill(prominent ? accentColor.opacity(0.18) : Palette.barTrack))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+    }
+}
+
+/// "Join", short and in the accent: the one thing a meeting card is for.
+private struct JoinPill: View {
+    let action: () -> Void
+    @Environment(\.notchdeckAccentColor) private var accentColor
+
+    var body: some View {
+        Button(action: action) {
+            Text(L10n.t("Join"))
+                .font(Typography.cardBody.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, Design.px(26))
+                .frame(height: Design.px(56))
+                .background(Capsule().fill(accentColor))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -303,39 +375,37 @@ private struct BatteryGlyph: View {
 
     var body: some View {
         let fill: Color = level <= 20 && !charging ? .red : (charging ? .green : accentColor)
-        ZStack {
-            HStack(spacing: Design.px(3)) {
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: Design.px(12), style: .continuous)
-                        .strokeBorder(Palette.textPrimary.opacity(0.8), lineWidth: Design.px(4))
-                    GeometryReader { proxy in
-                        RoundedRectangle(cornerRadius: Design.px(7), style: .continuous)
-                            .fill(fill)
-                            .frame(width: max(0, (proxy.size.width - Design.px(16)) * shown))
-                            .padding(Design.px(8))
-                    }
+        HStack(spacing: Design.px(2)) {
+            ZStack {
+                RoundedRectangle(cornerRadius: Design.px(9), style: .continuous)
+                    .strokeBorder(Palette.textPrimary.opacity(0.75), lineWidth: Design.px(3))
+                GeometryReader { proxy in
+                    RoundedRectangle(cornerRadius: Design.px(5), style: .continuous)
+                        .fill(fill)
+                        .frame(width: max(0, (proxy.size.width - Design.px(12)) * shown))
+                        .padding(Design.px(6))
                 }
-                .frame(width: Design.px(84), height: Design.px(44))
-                RoundedRectangle(cornerRadius: Design.px(3))
-                    .fill(Palette.textPrimary.opacity(0.8))
-                    .frame(width: Design.px(6), height: Design.px(16))
+                if charging {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: Design.px(20), weight: .heavy))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.45), radius: 1)
+                        .symbolEffect(.pulse, options: .repeating)
+                }
             }
-            if charging {
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: Design.px(30), weight: .bold))
-                    .foregroundStyle(Palette.textPrimary)
-                    .shadow(color: .black.opacity(0.5), radius: 1)
-                    .symbolEffect(.pulse, options: .repeating)
-            }
+            .frame(width: Design.px(60), height: Design.px(30))
+            RoundedRectangle(cornerRadius: Design.px(2))
+                .fill(Palette.textPrimary.opacity(0.75))
+                .frame(width: Design.px(4), height: Design.px(11))
         }
+        .frame(height: LiveCard.glyphSize)
         .onAppear {
             withAnimation(.easeOut(duration: 0.9)) { shown = CGFloat(level) / 100 }
         }
     }
 }
 
-/// Puts a file in the vault: a small round button, since it rides beside
-/// two pills.
+/// Puts a file in the vault: a round button beside the card's others.
 private struct AddToVaultButton: View {
     let url: URL
     @State private var added = false
@@ -347,11 +417,11 @@ private struct AddToVaultButton: View {
             added = true
         } label: {
             Image(systemName: added ? "checkmark" : "tray.and.arrow.down")
-                .font(.system(size: Design.px(26), weight: .semibold))
+                .font(.system(size: Design.px(24), weight: .semibold))
                 .foregroundStyle(added ? accentColor : Palette.textPrimary)
-                .frame(width: DeckLayout.chipHeight * 1.3, height: DeckLayout.chipHeight)
-                .background(Capsule().fill(Palette.barTrack))
-                .contentShape(Capsule())
+                .frame(width: Design.px(56), height: Design.px(56))
+                .background(Circle().fill(Palette.barTrack))
+                .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .disabled(added)

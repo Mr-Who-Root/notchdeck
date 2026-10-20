@@ -567,6 +567,7 @@ final class LiveCardRenderTests: XCTestCase {
     func testEveryLiveCardRenders() throws {
         let events: [(String, LiveEvent)] = [
             ("power", .power(.init(level: 76, isCharging: true, onAC: true, minutesRemaining: 70))),
+            ("plugged", .power(.init(level: 80, isCharging: false, onAC: true, minutesRemaining: nil))),
             ("downloaded", .downloaded(name: "report.pdf", url: URL(fileURLWithPath: "/Users/demo/Downloads/report.pdf"))),
             ("focus", .focus(title: "Time for a break", detail: "Short break: 5 minutes.", onBreak: true)),
             ("meeting", .meeting(.init(id: "m", title: "Design review", start: Date().addingTimeInterval(300),
@@ -575,8 +576,9 @@ final class LiveCardRenderTests: XCTestCase {
                                        eventIdentifier: nil))),
         ]
         for (name, event) in events {
+            let size = LiveCard.size(for: event)
             let renderer = ImageRenderer(content: LiveCard(event: event, direction: .down)
-                .frame(width: NotchLayout.cardWidth, height: LiveCard.cardHeight + NotchLayout.tailLength)
+                .frame(width: size.width, height: size.height + NotchLayout.tailLength)
                 .background(Color(white: 0.35))
                 .environment(\.colorScheme, .dark)
                 .environment(\.notchdeckHeadlessGlass, true))
