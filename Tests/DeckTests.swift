@@ -433,6 +433,40 @@ final class DeckRenderTests: XCTestCase {
         }
     }
 
+    /// The website's picture: the notch open on the top edge with a card,
+    /// on a transparent background to be laid over a wallpaper. Only with
+    /// `DECK_HERO_PATH` set.
+    func testHeroFrame() throws {
+        guard let directory = ProcessInfo.processInfo.environment["DECK_HERO_PATH"] else {
+            throw XCTSkip("DECK_HERO_PATH not set")
+        }
+        for tool in [DeckTool.vault, .meeting, .nowPlaying] {
+            let model = NotchViewModel()
+            model.adopt(screen: Screen())
+            model.edge = .top
+            model.accentColor = .blue
+            model.surfaceStyle = .solid
+            model.showsNotchReadings = true
+            model.updateSnapshots([
+                ProviderSnapshot(id: "claude", displayName: "Claude", glyph: .claude, fidelity: .official, status: .ok,
+                                 windows: [LimitWindow(id: "w", label: "Session", usedFraction: 0.42)], headlineID: "w"),
+                ProviderSnapshot(id: "codex", displayName: "Codex", glyph: .openai, fidelity: .official, status: .ok,
+                                 windows: [LimitWindow(id: "w", label: "Session", usedFraction: 0.18)], headlineID: "w"),
+            ])
+            model.deckTools = [.nowPlaying, .meeting, .clipboard, .vault, .timer]
+            model.isExpanded = true
+            model.hoveredIndex = model.snapshots.firstIndex { $0.deckTool == tool }
+            let renderer = ImageRenderer(content: NotchRootView(model: model)
+                .frame(width: model.panelSize.width, height: model.panelSize.height)
+                .environment(\.colorScheme, .dark)
+                .environment(\.notchdeckHeadlessGlass, true))
+            renderer.scale = 3
+            let image = try XCTUnwrap(renderer.cgImage)
+            let png = try XCTUnwrap(NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]))
+            try png.write(to: URL(fileURLWithPath: directory).appendingPathComponent("hero-\(tool.rawValue).png"))
+        }
+    }
+
     /// The pointer on the first clip — a link too long for its row — opens
     /// its preview: more of the card is painted than without it.
     func testAPointerOnALongClipDrawsItsPreview() throws {
