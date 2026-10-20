@@ -37,6 +37,12 @@ mod updater;
 mod deck;
 mod media;
 mod clipboard;
+mod audio;
+mod focus_timer;
+mod live;
+mod meeting;
+mod shell;
+mod vault;
 
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
@@ -757,6 +763,43 @@ fn set_hot(rects: Vec<[f64; 4]>, expanded: bool, probe: Option<[f64; 4]>) {
 fn set_click_through(app: &AppHandle, on: bool) {
     let Some(w) = app.get_webview_window("notch") else { return };
     let _ = w.set_ignore_cursor_events(on);
+}
+
+/// The window that was in front before the clipboard's search box took the keyboard, to hand it back.
+static KEYBOARD_FROM: std::sync::atomic::AtomicIsize = std::sync::atomic::AtomicIsize::new(0);
+
+/// The clipboard card's search box: the notch never takes the keyboard (focusable: false), so it is
+/// allowed to only while the box is in use, and the window that had it gets it back afterwards —
+/// unless something else has been brought forward in the meantime.
+#[tauri::command]
+fn notch_keyboard(app: AppHandle, on: bool) {
+    let Some(w) = app.get_webview_window("notch") else { return };
+    #[cfg(windows)]
+    let notch = w.hwnd().map(|h| h.0 as isize).unwrap_or(0);
+    #[cfg(windows)]
+    let front = || unsafe { windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow().0 as isize };
+    if on {
+        #[cfg(windows)]
+        {
+            let before = front();
+            if before != notch && before != 0 {
+                KEYBOARD_FROM.store(before, std::sync::atomic::Ordering::SeqCst);
+            }
+        }
+        let _ = w.set_focusable(true);
+        let _ = w.set_focus();
+    } else {
+        let _ = w.set_focusable(false);
+        let before = KEYBOARD_FROM.swap(0, std::sync::atomic::Ordering::SeqCst);
+        #[cfg(windows)]
+        if before != 0 && front() == notch {
+            unsafe {
+                let _ = windows::Win32::UI::WindowsAndMessaging::SetForegroundWindow(windows::Win32::Foundation::HWND(before as _));
+            }
+        }
+        #[cfg(not(windows))]
+        let _ = before;
+    }
 }
 
 /// The WebView zoom currently applied (1.0 = uncorrected)
@@ -2062,17 +2105,50 @@ fn main() {
             updater::open_project_page,
             deck::get_deck,
             deck::set_deck,
+            deck::set_deck_choice,
             deck::set_timer_minutes,
             deck::timer_finished,
             media::get_media,
             media::get_media_art,
             media::media_control,
             media::media_seek,
+            audio::get_audio,
+            audio::set_volume,
+            audio::set_muted,
+            audio::set_output,
             clipboard::get_clipboard,
             clipboard::clipboard_copy,
             clipboard::clipboard_pin,
             clipboard::clipboard_remove,
-            clipboard::clipboard_clear
+            clipboard::clipboard_clear,
+            clipboard::clipboard_search,
+            clipboard::clipboard_strip_formatting,
+            clipboard::clipboard_save_snippet,
+            clipboard::get_snippets,
+            clipboard::snippet_save,
+            clipboard::snippet_delete,
+            clipboard::snippet_copy,
+            focus_timer::focus_phase_done,
+            focus_timer::focus_reset_cycle,
+            focus_timer::get_focus_stats,
+            vault::get_vault,
+            vault::vault_remove,
+            vault::vault_clear,
+            vault::vault_reveal,
+            vault::vault_open,
+            vault::vault_open_folder,
+            vault::vault_zip,
+            vault::vault_share,
+            vault::vault_drag_out,
+            meeting::get_meeting,
+            meeting::get_meeting_feeds,
+            meeting::set_meeting_feeds,
+            meeting::meeting_refresh,
+            meeting::meeting_join,
+            live::get_transfers,
+            live::live_open,
+            live::live_reveal,
+            notch_keyboard
         ])
         .setup(move |app| {
             let handle = app.handle().clone();

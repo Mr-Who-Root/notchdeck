@@ -156,10 +156,82 @@ pub struct Config {
     /// The focus timer's length, in minutes.
     #[serde(default = "default_timer_minutes")]
     pub timer_minutes: u32,
+    /// The Vault: files dragged onto the notch, held there to be dragged out again (vault.rs).
+    #[serde(default = "yes")]
+    pub deck_vault: bool,
+    /// How long an item stays in the Vault: "never", "1h", "1d" or "1w".
+    #[serde(default = "default_vault_clear_after")]
+    pub vault_clear_after: String,
+    /// true = every file dropped in is copied into the vault folder, not only those that sit
+    /// somewhere temporary.
+    #[serde(default)]
+    pub vault_keep_copies: bool,
+    /// The next meeting, read from the iCal feeds below (meeting.rs).
+    #[serde(default = "yes")]
+    pub deck_meeting: bool,
+    /// iCal (ICS) addresses: Google's "secret address in iCal format", Outlook's published calendar.
+    #[serde(default)]
+    pub meeting_feeds: Vec<String>,
+    /// Minutes before a meeting that the notch peeks with it; 0 = never.
+    #[serde(default = "default_meeting_heads_up")]
+    pub meeting_heads_up: u32,
+    /// Live status (live.rs): a card when the charger goes in or out.
+    #[serde(default = "yes")]
+    pub live_charging: bool,
+    /// Live status: a cell while something downloads into the Downloads folder.
+    #[serde(default = "yes")]
+    pub live_downloads: bool,
+    /// The focus timer runs focus and break phases in a cycle (focus_timer.rs).
+    #[serde(default)]
+    pub timer_cycles: bool,
+    #[serde(default = "default_short_break")]
+    pub timer_short_break: u32,
+    #[serde(default = "default_long_break")]
+    pub timer_long_break: u32,
+    /// A long break after this many focus phases.
+    #[serde(default = "default_long_every")]
+    pub timer_long_every: u32,
+    /// The next phase starts by itself when one ends.
+    #[serde(default = "yes")]
+    pub timer_auto_start: bool,
+    /// Every new copy of formatted text is put back on the clipboard as plain text.
+    #[serde(default)]
+    pub clipboard_plain: bool,
 }
 
 pub fn default_timer_minutes() -> u32 {
     25
+}
+pub fn default_vault_clear_after() -> String {
+    "never".into()
+}
+pub fn default_meeting_heads_up() -> u32 {
+    5
+}
+pub fn default_short_break() -> u32 {
+    5
+}
+pub fn default_long_break() -> u32 {
+    15
+}
+pub fn default_long_every() -> u32 {
+    4
+}
+
+/// The Vault's choices; anything else keeps items until they are removed.
+pub fn vault_clear_or_never(value: &str) -> String {
+    match value {
+        "1h" | "1d" | "1w" => value.to_string(),
+        _ => default_vault_clear_after(),
+    }
+}
+
+/// The heads-up choices Settings offers.
+pub fn heads_up_or_default(minutes: u32) -> u32 {
+    match minutes {
+        0 | 1 | 5 | 10 => minutes,
+        _ => default_meeting_heads_up(),
+    }
 }
 
 fn default_notch_y() -> f64 {
@@ -343,6 +415,20 @@ impl Default for Config {
             deck_timer: true,
             clipboard_remember: true,
             timer_minutes: default_timer_minutes(),
+            deck_vault: true,
+            vault_clear_after: default_vault_clear_after(),
+            vault_keep_copies: false,
+            deck_meeting: true,
+            meeting_feeds: Vec::new(),
+            meeting_heads_up: default_meeting_heads_up(),
+            live_charging: true,
+            live_downloads: true,
+            timer_cycles: false,
+            timer_short_break: default_short_break(),
+            timer_long_break: default_long_break(),
+            timer_long_every: default_long_every(),
+            timer_auto_start: true,
+            clipboard_plain: false,
         }
     }
 }
@@ -418,6 +504,11 @@ pub fn load() -> Config {
     cfg.weekly_ring = weekly_ring_or_off(&cfg.weekly_ring);
     cfg.color_transition = color_transition_or_step(&cfg.color_transition);
     cfg.theme = theme_or_system(&cfg.theme);
+    cfg.vault_clear_after = vault_clear_or_never(&cfg.vault_clear_after);
+    cfg.meeting_heads_up = heads_up_or_default(cfg.meeting_heads_up);
+    cfg.timer_short_break = cfg.timer_short_break.clamp(1, 60);
+    cfg.timer_long_break = cfg.timer_long_break.clamp(1, 90);
+    cfg.timer_long_every = cfg.timer_long_every.clamp(2, 12);
     // A stored pair that crossed over (or predates this setting) is repaired the same order the
     // Mac's own init does: critical first, then watch below it.
     cfg.critical_limit = cfg.critical_limit.clamp(0.02, 1.0);

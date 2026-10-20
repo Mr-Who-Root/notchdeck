@@ -270,6 +270,10 @@ pub fn tr(lang: &str, key: &str) -> &'static str {
         ("ru", "keep_open") => "Оставить открытым",
         ("uk", "keep_open") => "Тримати відкритим",
         (_, "keep_open") => "Keep open",
+        // The deck's menu items; English everywhere until they are translated.
+        (_, "vault_folder") => "Open Vault Folder",
+        (_, "vault_empty") => "Empty Vault",
+        (_, "join_meeting") => "Join %@",
         _ => "?",
     }
 }

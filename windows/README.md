@@ -3,7 +3,8 @@
 The Windows build of NotchDeck — the usage notch that sits on the edge of your screen and
 answers two questions at a glance: **how much of my AI allowance is left**, and **is Claude
 still working** — with the same deck of tools beside the rings as on the Mac: **Now Playing**,
-**Clipboard history** and a **Focus Timer** (see [the deck](#the-deck)).
+**Clipboard history**, a **Focus Timer**, the **Vault**, your **Next meeting** and **live status**
+for the charger and downloads (see [the deck](#the-deck)).
 
 Same design language as the macOS original (inverse-rounded pill, colour-graded rings,
 hover card with per-window bars), rebuilt for Windows in Rust + Tauri 2 / WebView2.
@@ -133,20 +134,40 @@ shows an error or the last reading marked stale. NotchDeck does not automate sig
 
 ## The deck
 
-Three cells after the rings, each with its own card, switched on and off in **Settings → General
+Cells after the rings, each with its own card, switched on and off in **Settings → General
 → Deck**:
 
 - **Now Playing** reads the system media sessions (`GlobalSystemMediaTransportControlsSessionManager`,
   the ones the volume flyout shows) once a second from `media.rs`: title, artist, app, artwork,
-  progress, and previous / play-pause / next / seek. Click the cell to play or pause.
+  progress, and previous / play-pause / next / seek. Click the cell to play or pause. Its card has a
+  volume row (`audio.rs`): mute, a slider that follows the volume keys, and a list of outputs to
+  switch to — through `IPolicyConfig`, the interface Windows' own switcher uses.
 - **Clipboard** (`clipboard.rs`) watches the clipboard's sequence number and keeps text, links and
   copied files, most recent first, with pinning. Anything marked
   `ExcludeClipboardContentFromMonitorProcessing` or `CanIncludeInClipboardHistory = 0` — what
   password managers set — is never recorded, nor is anything copied while a password manager is in
   front. With **Remember clipboard history** on, clips are kept in `clipboard-history.json` in the
-  data folder; switched off, that file is deleted.
-- **Focus Timer** runs in the notch page itself; Rust keeps its length and plays the system sound
-  when it ends, and the notch opens on the timer's card.
+  data folder; switched off, that file is deleted. The card searches the history (the notch takes
+  the keyboard only while its search box is in use), keeps **snippets** (`snippets.json`; star a
+  clip, or add them in Settings), and has a **Plain text** button; **Always strip formatting** does
+  that to every copy.
+- **Focus Timer** runs in the notch page itself; Rust keeps its lengths, plays the system sound when
+  a phase ends, and (`focus_timer.rs`) runs **cycles** of focus and short and long breaks and keeps
+  the day's focused time and the week before it in `focus-stats.json`. Windows has no API an app may
+  use for Do Not Disturb, so the timer does not change it.
+- **Vault** (`vault.rs`): drag files onto the notch to hold them, drag them out to copy them (Shift
+  moves). Files are held by path; ones from temporary places (Outlook attachments, browser caches,
+  `%TEMP%`) and text, links and pictures dragged from a browser are kept in
+  `%LOCALAPPDATA%\NotchDeck\Vault`. Share, Zip, Clear, and clearing after an hour, a day or a week.
+  The notch window has a drop target of its own (wry's only reads files); dragging out uses the
+  shell's data object and `SHDoDragDrop`, offered as a copy.
+- **Next meeting** (`meeting.rs`) reads iCal feeds pasted in Settings (Google's secret iCal address,
+  Outlook's published calendar), with time zones, repeats, cancelled and moved repeats. A ring counts
+  down the last hour, the card has **Join** for Zoom, Meet, Teams, Webex and others, and the notch
+  peeks a few minutes before.
+- **Live status** (`live.rs`): the notch peeks when the charger goes in or out, and a **Downloads**
+  cell appears while a browser downloads into the Downloads folder, peeking with Open and Show in
+  Explorer when it finishes.
 
 ## Install / build
 

@@ -126,6 +126,19 @@
   .item.slider > input.range:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
   select{font:inherit;font-size:13px;color:var(--text);background:var(--seg-bg);border:0;border-radius:6px;padding:4px 8px}
   select option{color:#000}
+  /* The deck's text boxes: snippets and calendar addresses */
+  .item textarea,.item input[type="text"]{font:inherit;font-size:13px;color:var(--text);background:var(--seg-bg);border:1px solid var(--line);
+    border-radius:6px;padding:6px 8px;width:100%;box-sizing:border-box;resize:vertical;user-select:text}
+  .item textarea:focus,.item input[type="text"]:focus{outline:2px solid var(--accent);outline-offset:0}
+  .item.feeds,.item.snip-edit{display:block}
+  .item.snip-edit > * + *{margin-top:6px}
+  .snip-buttons{display:flex;justify-content:flex-end;gap:6px}
+  #snippet-list:empty{display:none}
+  .btn.primary{background:var(--accent);color:var(--on-accent)}
+  .snip-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--sep)}
+  .snip-row .snip-text{flex:1;min-width:0}
+  .snip-row .snip-title{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .snip-row .snip-body{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .link{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-size:12px}
   .link:hover{text-decoration:underline}
 
@@ -226,7 +239,7 @@
             <div class="about-text">
               <div class="about-name">NotchDeck</div>
               <div class="about-line"><span>Version</span> <span id="about-version" data-dynamic>0.3.0</span></div>
-              <div class="about-line">Usage rings, Now Playing, clipboard history and a focus timer, in your notch.</div>
+              <div class="about-line">Usage rings, Now Playing, clipboard history, a focus timer, the Vault and your next meeting, in your notch.</div>
             </div>
             <button class="btn" id="btn-update" data-dynamic>Check for updates</button>
           </div>
@@ -246,8 +259,52 @@
           <div class="item"><span>Remember clipboard history</span><button class="switch" id="sw-deck-remember" role="switch" aria-checked="false" aria-label="Remember clipboard history"></button></div>
           <div class="item cap">Recent text, links and files you copied, a click away from being copied again. Anything a password manager marks as private is never recorded. Remembered clips are kept in the data folder.</div>
           <div class="item"><span>Clear clipboard history</span><button class="btn" id="btn-clip-clear">Clear</button></div>
+          <div class="item"><span>Always strip formatting from copied text</span><button class="switch" id="sw-deck-plain" role="switch" aria-checked="false" aria-label="Always strip formatting from copied text"></button></div>
+          <div class="item cap">Text copied from a web page or a document is put back on the clipboard as the same text without its fonts and colours, so it pastes plain everywhere. The card's Plain text button does this once, for what is on the clipboard now.</div>
+        </div>
+        <div class="group">
+          <div class="item"><span>Snippets</span><button class="btn" id="btn-snippet-add">Add snippet</button></div>
+          <div class="item cap">Text you paste again and again: an address, a sign-off, a command. They are on the clipboard card's Snippets tab, and a click copies one. Star a clip on the card to keep it here too.</div>
+          <div id="snippet-editor" class="item snip-edit" hidden>
+            <input type="text" id="snippet-title" placeholder="Title (optional)" maxlength="80">
+            <textarea id="snippet-text" rows="3" placeholder="The text to paste"></textarea>
+            <div class="snip-buttons"><button class="btn" id="btn-snippet-cancel">Cancel</button><button class="btn primary" id="btn-snippet-save">Save</button></div>
+          </div>
+          <div id="snippet-list"></div>
+        </div>
+        <div class="group">
           <div class="item"><span>Focus timer</span><button class="switch" id="sw-deck-timer" role="switch" aria-checked="false" aria-label="Focus timer"></button></div>
-          <div class="item cap">Pick a length on its card and click the cell to start or pause. When time is up the notch opens with a chime.</div>
+          <div class="item cap">Pick a length on its card and click the cell to start or pause. When time is up the notch opens with a chime. The card keeps a tally of today's focused time and the week before it.</div>
+          <div class="item"><span>Cycles of focus and breaks</span><button class="switch" id="sw-deck-cycles" role="switch" aria-checked="false" aria-label="Cycles of focus and breaks"></button></div>
+          <div class="item"><span>Short break</span><select id="sel-short-break" aria-label="Short break"></select></div>
+          <div class="item"><span>Long break</span><select id="sel-long-break" aria-label="Long break"></select></div>
+          <div class="item"><span>Long break after</span><select id="sel-long-every" aria-label="Long break after"></select></div>
+          <div class="item"><span>Start the next phase by itself</span><button class="switch" id="sw-deck-autostart" role="switch" aria-checked="false" aria-label="Start the next phase by itself"></button></div>
+          <div class="item cap">Focus, a short break, focus again, and a long break after every few focus phases. Windows has no setting an app may use to turn Do Not Disturb on, so the timer does not change it; turn it on in Windows' notification settings if you want quiet while you focus.</div>
+        </div>
+        <div class="group">
+          <div class="item"><span>Vault</span><button class="switch" id="sw-deck-vault" role="switch" aria-checked="false" aria-label="Vault"></button></div>
+          <div class="item cap">Drag files onto the notch to hold them there, then drag them out into Explorer, a mail or a chat. A drag out copies; hold Shift to move. Files are held where they are, except ones from somewhere temporary, such as an Outlook attachment, which are copied into the Vault folder.</div>
+          <div class="item"><span>Clear items after</span><select id="sel-vault-clear" aria-label="Clear items after">
+            <option value="never">Never</option><option value="1h">1 hour</option><option value="1d">1 day</option><option value="1w">1 week</option>
+          </select></div>
+          <div class="item"><span>Keep a copy of everything dropped in</span><button class="switch" id="sw-deck-vault-copies" role="switch" aria-checked="false" aria-label="Keep a copy of everything dropped in"></button></div>
+          <div class="item"><span>Vault folder</span><button class="btn" id="btn-vault-folder">Open folder</button></div>
+        </div>
+        <div class="group">
+          <div class="item"><span>Next meeting</span><button class="switch" id="sw-deck-meeting" role="switch" aria-checked="false" aria-label="Next meeting"></button></div>
+          <div class="item cap">A ring counting down to your next meeting, with a Join button for Zoom, Google Meet, Teams and Webex links. Windows does not let apps read its calendar, so paste your calendar's iCal address: in Google Calendar, Settings → your calendar → "Secret address in iCal format"; in Outlook on the web, Settings → Calendar → Shared calendars → Publish a calendar → ICS link. One address per line.</div>
+          <div class="item feeds"><textarea id="meeting-feeds" rows="2" spellcheck="false" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics"></textarea></div>
+          <div class="item"><span class="hint" id="meeting-status"></span><button class="btn" id="btn-feeds-save">Save addresses</button></div>
+          <div class="item"><span>Heads-up before a meeting</span><select id="sel-heads-up" aria-label="Heads-up before a meeting">
+            <option value="0">Off</option><option value="1">1 minute</option><option value="5">5 minutes</option><option value="10">10 minutes</option>
+          </select></div>
+        </div>
+        <div class="group">
+          <div class="item"><span>Charging</span><button class="switch" id="sw-live-charging" role="switch" aria-checked="false" aria-label="Charging"></button></div>
+          <div class="item cap">The notch peeks for a moment when the charger goes in or out, with the battery's level.</div>
+          <div class="item"><span>Downloads</span><button class="switch" id="sw-live-downloads" role="switch" aria-checked="false" aria-label="Downloads"></button></div>
+          <div class="item cap">While a browser downloads into your Downloads folder, a cell shows how far it has got; when it finishes, the notch peeks with Open and Show in Explorer.</div>
         </div>
         <div class="sec">Notifications</div>
         <div class="group">
@@ -1283,12 +1340,110 @@ document.getElementById('sw-weekly-dashed').addEventListener('click', () => week
 /* ---- The deck: Now Playing, Clipboard, Focus Timer ------------------------
    One get_deck for all four switches and one set_deck per switch, which answers with the whole
    set, so what is drawn is always what Rust kept. */
-let deck = { now_playing:true, clipboard:true, timer:true, clipboard_remember:true, timer_minutes:25 };
-const DECK_SWITCHES = { 'sw-deck-media':'now_playing', 'sw-deck-clipboard':'clipboard', 'sw-deck-timer':'timer', 'sw-deck-remember':'clipboard_remember' };
+let deck = { now_playing:true, clipboard:true, timer:true, clipboard_remember:true, timer_minutes:25,
+  vault:true, vault_clear_after:'never', vault_keep_copies:false, meeting:true, meeting_feeds:0, meeting_heads_up:5,
+  live_charging:true, live_downloads:true, timer_cycles:false, timer_short_break:5, timer_long_break:15, timer_long_every:4,
+  timer_auto_start:true, clipboard_plain:false };
+const DECK_SWITCHES = { 'sw-deck-media':'now_playing', 'sw-deck-clipboard':'clipboard', 'sw-deck-timer':'timer', 'sw-deck-remember':'clipboard_remember',
+  'sw-deck-plain':'clipboard_plain', 'sw-deck-cycles':'timer_cycles', 'sw-deck-autostart':'timer_auto_start', 'sw-deck-vault':'vault',
+  'sw-deck-vault-copies':'vault_keep_copies', 'sw-deck-meeting':'meeting', 'sw-live-charging':'live_charging', 'sw-live-downloads':'live_downloads' };
+// The deck's choices that are not switches: <select> id → the key set_deck_choice takes
+const DECK_CHOICES = { 'sel-vault-clear':'vault_clear_after', 'sel-heads-up':'meeting_heads_up', 'sel-short-break':'timer_short_break',
+  'sel-long-break':'timer_long_break', 'sel-long-every':'timer_long_every' };
+function fillMinutes(id, values, unit){
+  const sel = document.getElementById(id);
+  if(sel.options.length) return;
+  for(const v of values){ const o = document.createElement('option'); o.value = String(v); o.textContent = `${v} ${unit}`; sel.appendChild(o); }
+}
+fillMinutes('sel-short-break', [3, 5, 10, 15], 'min');
+fillMinutes('sel-long-break', [10, 15, 20, 30], 'min');
+fillMinutes('sel-long-every', [2, 3, 4, 5, 6], 'focus phases');
 function renderDeck(){
   for(const [id, key] of Object.entries(DECK_SWITCHES)) drawSwitch(document.getElementById(id), { value: !!deck[key], busy: false });
   document.getElementById('sw-deck-remember').disabled = !deck.clipboard;
+  document.getElementById('sw-deck-plain').disabled = !deck.clipboard;
+  for(const [id, key] of Object.entries(DECK_CHOICES)){
+    const sel = document.getElementById(id), v = String(deck[key]);
+    // A value saved by hand that the list does not offer still shows, rather than the first option
+    if(![...sel.options].some(o => o.value === v)){ const o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o); }
+    sel.value = v;
+  }
+  const cyc = !!deck.timer_cycles && !!deck.timer;
+  for(const id of ['sel-short-break', 'sel-long-break', 'sel-long-every']) document.getElementById(id).disabled = !cyc;
+  document.getElementById('sw-deck-cycles').disabled = !deck.timer;
+  document.getElementById('sw-deck-autostart').disabled = !cyc;
+  document.getElementById('sw-deck-vault-copies').disabled = !deck.vault;
+  document.getElementById('sel-vault-clear').disabled = !deck.vault;
+  document.getElementById('sel-heads-up').disabled = !deck.meeting;
 }
+for(const [id, key] of Object.entries(DECK_CHOICES)){
+  document.getElementById(id).addEventListener('change', e => {
+    invoke('set_deck_choice', { key, value: e.target.value })
+      .then(v => { applyDeckState(v); toast(); })
+      .catch(err => { strip('The deck could not be changed: ' + errText(err)); call('get_deck', undefined, null).then(applyDeckState); });
+  });
+}
+document.getElementById('btn-vault-folder').addEventListener('click', () => {
+  invoke('vault_open_folder').catch(e => strip('The Vault folder could not be opened: ' + errText(e)));
+});
+
+/* ---- Calendar addresses: secret, so they are read here and never sent to the notch ---- */
+function meetingStatus(m){
+  const el = document.getElementById('meeting-status');
+  if(!m || !m.configured){ el.textContent = ''; return; }
+  el.textContent = m.error ? ('Could not read: ' + m.error)
+    : m.next ? ('Next: ' + m.next.title + ', ' + new Date(m.next.start_ms).toLocaleString([], { weekday:'short', hour:'numeric', minute:'2-digit' }))
+    : 'Read. Nothing in the next 24 hours.';
+}
+function loadFeeds(){
+  call('get_meeting_feeds', undefined, []).then(v => { if(Array.isArray(v)) document.getElementById('meeting-feeds').value = v.join('\n'); });
+  call('get_meeting', undefined, null).then(meetingStatus);
+}
+document.getElementById('btn-feeds-save').addEventListener('click', () => {
+  const feeds = document.getElementById('meeting-feeds').value.split('\n').map(s => s.trim()).filter(Boolean);
+  invoke('set_meeting_feeds', { feeds })
+    .then(v => { document.getElementById('meeting-feeds').value = (v || []).join('\n'); document.getElementById('meeting-status').textContent = (v && v.length) ? 'Saved. Reading…' : ''; toast(); })
+    .catch(e => strip('The calendar addresses were not saved: ' + errText(e)));
+});
+try { window.__TAURI__.event.listen('meeting', e => meetingStatus(e.payload)); } catch(e) { /* the next open reads it */ }
+
+/* ---- Snippets ---- */
+let snippetList = [], snippetEditing = null;
+function renderSnippets(){
+  const box = document.getElementById('snippet-list');
+  box.textContent = '';
+  for(const s of snippetList){
+    const row = document.createElement('div'); row.className = 'snip-row';
+    const text = document.createElement('div'); text.className = 'snip-text';
+    const title = document.createElement('div'); title.className = 'snip-title';
+    title.textContent = s.title || (s.text.split('\n').find(l => l.trim()) || '').trim();
+    const body = document.createElement('div'); body.className = 'snip-body';
+    body.textContent = s.title ? s.text.replace(/\s+/g, ' ') : '';
+    text.append(title, body);
+    const edit = document.createElement('button'); edit.className = 'btn'; edit.textContent = 'Edit';
+    edit.addEventListener('click', () => openSnippet(s));
+    const del = document.createElement('button'); del.className = 'btn'; del.textContent = 'Delete';
+    del.addEventListener('click', () => invoke('snippet_delete', { id: s.id }).then(v => { snippetList = v || []; renderSnippets(); toast(); }).catch(e => strip('The snippet was not deleted: ' + errText(e))));
+    row.append(text, edit, del);
+    box.appendChild(row);
+  }
+}
+function openSnippet(s){
+  snippetEditing = s ? s.id : null;
+  document.getElementById('snippet-title').value = s ? s.title : '';
+  document.getElementById('snippet-text').value = s ? s.text : '';
+  document.getElementById('snippet-editor').hidden = false;
+  document.getElementById('snippet-text').focus();
+}
+document.getElementById('btn-snippet-add').addEventListener('click', () => openSnippet(null));
+document.getElementById('btn-snippet-cancel').addEventListener('click', () => { document.getElementById('snippet-editor').hidden = true; });
+document.getElementById('btn-snippet-save').addEventListener('click', () => {
+  invoke('snippet_save', { id: snippetEditing, title: document.getElementById('snippet-title').value, text: document.getElementById('snippet-text').value })
+    .then(v => { snippetList = v || []; renderSnippets(); document.getElementById('snippet-editor').hidden = true; toast(); })
+    .catch(e => strip('The snippet was not saved: ' + errText(e)));
+});
+try { window.__TAURI__.event.listen('snippets', e => { snippetList = Array.isArray(e.payload) ? e.payload : []; renderSnippets(); }); } catch(e) { /* the next open reads it */ }
+function loadSnippets(){ call('get_snippets', undefined, []).then(v => { snippetList = Array.isArray(v) ? v : []; renderSnippets(); }); }
 function applyDeckState(v){ if(v && typeof v === 'object') deck = v; renderDeck(); }
 for(const [id, key] of Object.entries(DECK_SWITCHES)){
   document.getElementById(id).addEventListener('click', () => {
@@ -1868,6 +2023,8 @@ function boot(){
     weeklyDashed.refresh(),
     showRemaining.refresh(),
     call('get_deck', undefined, null).then(applyDeckState),
+    loadFeeds(),
+    loadSnippets(),
     hooks.refresh()
   ];
   try { window.__TAURI__.event.listen('glyphs', e => { if(e.payload){ glyphs = e.payload; renderAccounts(); } }); } catch(e) { /* the letters stay */ }

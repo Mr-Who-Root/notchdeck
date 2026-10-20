@@ -177,11 +177,7 @@ fn app_candidates(id: &str) -> Vec<PathBuf> {
 /// Icon from the exe resources → 64 px RGBA → PNG data URL
 #[cfg(windows)]
 fn from_exe(p: &Path) -> Option<Glyph> {
-    use windows::Win32::Graphics::Gdi::{
-        DeleteObject, GetDC, GetDIBits, GetObjectW, ReleaseDC, BITMAP, BITMAPINFO, BITMAPINFOHEADER, BI_RGB,
-        DIB_RGB_COLORS,
-    };
-    use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, PrivateExtractIconsW, HICON, ICONINFO};
+    use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, PrivateExtractIconsW, HICON};
 
     use std::os::windows::ffi::OsStrExt;
     let wide: Vec<u16> = p.as_os_str().encode_wide().collect();
@@ -199,6 +195,22 @@ fn from_exe(p: &Path) -> Option<Glyph> {
             return None;
         }
         let hicon = icons[0];
+        let url = icon_png_url(hicon);
+        let _ = DestroyIcon(hicon);
+        url.map(|url| Glyph { kind: "appicon".into(), url, source: p.display().to_string(), ..Default::default() })
+    }
+}
+
+/// An icon's colour bitmap as a PNG data URL. The caller still owns `hicon`. Also the Vault's file
+/// icons (vault.rs).
+#[cfg(windows)]
+pub(crate) fn icon_png_url(hicon: windows::Win32::UI::WindowsAndMessaging::HICON) -> Option<String> {
+    use windows::Win32::Graphics::Gdi::{
+        DeleteObject, GetDC, GetDIBits, GetObjectW, ReleaseDC, BITMAP, BITMAPINFO, BITMAPINFOHEADER, BI_RGB,
+        DIB_RGB_COLORS,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::{GetIconInfo, ICONINFO};
+    unsafe {
         let mut info = ICONINFO::default();
         let ok = GetIconInfo(hicon, &mut info).is_ok();
         let mut result = None;
@@ -232,12 +244,8 @@ fn from_exe(p: &Path) -> Option<Glyph> {
                             px[3] = 255;
                         }
                     }
-                    result = encode_png(w as u32, h as u32, &buf).map(|png| Glyph {
-                        kind: "appicon".into(),
-                        url: format!("data:image/png;base64,{}", b64(&png)),
-                        source: p.display().to_string(),
-                        ..Default::default()
-                    });
+                    result = encode_png(w as u32, h as u32, &buf)
+                        .map(|png| format!("data:image/png;base64,{}", b64(&png)));
                 }
             }
         }
@@ -245,7 +253,6 @@ fn from_exe(p: &Path) -> Option<Glyph> {
             let _ = DeleteObject(info.hbmColor);
             let _ = DeleteObject(info.hbmMask);
         }
-        let _ = DestroyIcon(hicon);
         result
     }
 }

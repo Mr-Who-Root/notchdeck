@@ -331,6 +331,85 @@
   #clippeek.show{display:block}
   #clippeek .p-text{font-size:12px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;max-height:174px;overflow:hidden}
   #clippeek .p-foot{margin-top:6px;font-size:10.5px;color:var(--ink-dim)}
+
+  /* ---- The deck, continued: Vault, Next meeting, Downloads, the live cards, and the extras ---- */
+  .cell.deck .arc-turn{transform-origin:28px 28px;animation:spin 1.6s linear infinite}
+  @media (prefers-reduced-motion: reduce){.cell.deck .arc-turn{animation:none}}
+  .d-tabs{display:inline-flex;gap:2px;background:var(--bar);border-radius:7px;padding:2px;margin-left:6px}
+  .d-tab{font:inherit;font-size:11px;color:var(--ink-dim);background:none;border:none;border-radius:5px;padding:2px 7px;cursor:pointer}
+  .d-tab.on{background:var(--btn);color:var(--ink);font-weight:600}
+  .d-acts{display:flex;align-items:center;gap:2px;margin-left:auto}
+  .c-search{width:100%;box-sizing:border-box;font:inherit;font-size:12px;color:var(--ink);background:var(--btn);
+    border:1px solid var(--btn-line);border-radius:7px;padding:5px 8px;margin:0 0 6px;outline:none;user-select:text}
+  .c-search:focus{border-color:var(--ample)}
+  .c-status{font-size:11px;color:var(--ample);margin:-2px 0 4px;min-height:0}
+  .clip .x svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;display:block}
+  .clip .x.on svg{fill:currentColor}
+  /* The Vault */
+  .v-drop{border:1.5px dashed var(--btn-line);border-radius:10px;padding:14px 12px;font-size:12px;line-height:1.5;color:var(--ink-3);text-align:center}
+  #card.dropping .v-drop,#card.dropping .v-banner{border-color:var(--ample);color:var(--ink);background:color-mix(in srgb,var(--ample) 10%,transparent)}
+  .v-banner{display:none;border:1.5px dashed var(--ample);border-radius:10px;padding:8px;font-size:12px;text-align:center;margin-bottom:6px}
+  #card.dropping .v-banner{display:block}
+  .v-row{display:flex;align-items:center;gap:8px;padding:4px 6px;margin:0 -6px;border-radius:7px;cursor:grab}
+  .v-row:hover{background:var(--btn-hover)}
+  .v-row.missing{opacity:.5}
+  .v-icon{flex:0 0 auto;width:26px;height:26px;object-fit:contain;display:flex;align-items:center;justify-content:center;color:var(--ink-dim)}
+  .v-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .v-meta{flex:1;min-width:0}
+  .v-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .v-detail{font-size:10.5px;color:var(--ink-dim)}
+  .v-row .x{flex:0 0 auto;font:inherit;font-size:11px;line-height:1;color:var(--ink-dim);background:none;border:none;cursor:pointer;padding:3px;border-radius:5px;opacity:.6}
+  .v-row .x:hover{opacity:1;color:var(--ink);background:var(--btn)}
+  .v-row .x svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+  .v-dragall{margin-top:8px;text-align:center;font-size:11px;font-weight:600;color:var(--ink);background:var(--btn);border:1px solid var(--btn-line);border-radius:999px;padding:5px 0;cursor:grab}
+  .v-hint{font-size:10.5px;color:var(--ink-dim);margin-top:6px;line-height:1.4}
+  /* Next meeting */
+  .m-title{font-size:14px;font-weight:700;margin-top:2px;overflow-wrap:anywhere}
+  .m-time{font-size:12px;color:var(--ink-2);margin-top:3px;font-variant-numeric:tabular-nums}
+  .m-sub{font-size:11px;color:var(--ink-dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .m-join{display:block;width:100%;margin-top:10px;padding:7px 0}
+  .m-later{margin-top:10px;border-top:1px solid var(--card-rule);padding-top:6px}
+  .m-at{color:var(--ink-dim);font-variant-numeric:tabular-nums;flex:0 0 auto}
+  /* Downloads */
+  .tr-row{margin-top:8px}
+  .tr-name{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tr-meta{font-size:10.5px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+  .d-bar.busy .d-fill{width:35%;animation:slide 1.4s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
+  @media (prefers-reduced-motion: reduce){.d-bar.busy .d-fill{animation:none;width:100%;opacity:.5}}
+  /* The live cards */
+  .l-row{display:flex;align-items:center;gap:12px}
+  .l-glyph{flex:0 0 auto;width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:var(--ample)}
+  .l-glyph svg{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .l-title{font-size:14px;font-weight:700}
+  .l-detail{font-size:12px;color:var(--ink-3);margin-top:2px;overflow-wrap:anywhere}
+  .l-battery{position:relative;width:40px;height:20px;border:2px solid var(--ink-2);border-radius:5px;box-sizing:border-box}
+  .l-battery::after{content:"";position:absolute;right:-5px;top:5px;width:3px;height:6px;border-radius:0 2px 2px 0;background:var(--ink-2)}
+  .l-battery i{position:absolute;left:2px;top:2px;bottom:2px;border-radius:2px;background:var(--ample);width:0;transition:width 1.2s cubic-bezier(.32,.72,.24,1)}
+  .l-battery.low i{background:var(--crit)}
+  .l-battery b svg{width:12px;height:12px;fill:currentColor;stroke:none}
+  .l-battery b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink);font-size:12px}
+  .l-actions{display:flex;gap:6px;margin-top:10px}
+  /* Now Playing's volume row */
+  .a-row{display:flex;align-items:center;gap:6px;margin-top:8px}
+  .a-row .d-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .a-vol{flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:16px;background:transparent;margin:0}
+  .a-vol::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(var(--ample),var(--ample)) 0 0/var(--f,50%) 100% no-repeat,var(--bar)}
+  .a-vol::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-4px;border-radius:50%;background:var(--ink)}
+  .a-list{margin-top:6px;border-top:1px solid var(--card-rule);padding-top:4px}
+  .a-dev{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 6px;margin:0 -6px;border-radius:7px;cursor:pointer}
+  .a-dev:hover{background:var(--btn-hover)}
+  .a-dev .ck{flex:0 0 12px;color:var(--ample);font-weight:700}
+  .a-dev .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* The timer's phase and its week */
+  .t-phase{font-size:11px;font-weight:600;color:var(--ink-dim);margin-top:2px;text-transform:none}
+  .t-stats{margin-top:12px;border-top:1px solid var(--card-rule);padding-top:8px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+  .t-today{font-size:11px;color:var(--ink-3);line-height:1.4}
+  .t-week{display:flex;gap:3px;align-items:flex-end;height:30px}
+  .t-day{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .t-day i{display:block;width:7px;border-radius:2px;background:var(--bar);min-height:2px}
+  .t-day.today i{background:var(--ample)}
+  .t-day span{font-size:8.5px;color:var(--ink-dim);line-height:1}
 </style>
 </head>
 <body>
@@ -487,6 +566,9 @@ let activity=[]; // working state of the non-Claude providers: {provider,state:'
 let notchEdge='right';
 // Show on hover — the logic is beside the handles below; declared here, since reportHot reads `folded` from the first frame
 let onHover=false, fullScreen=false, folded=false, pointerIn=false, menuOpen=false, foldTimer=null;
+// The deck's (see "The deck" below), declared up here because the fold and the hot rectangles read them:
+// a live card peeking, a drag of files over the notch, the clipboard's search box in use.
+let peeking=false, vaultDrag=false, liveCard=null, searchFocused=false, clipQuery='', clipResults=null;
 /* How much of the window the taskbar covers, in CSS px, from Rust: top, right, bottom, left. The pill
    stays against the screen edge; the card is kept out of these. */
 let insets=[0,0,0,0];
@@ -1423,7 +1505,9 @@ async function signInClaude(){
 // CLAUDE_AUTH_ACTIONS_END
 function renderCard(){
   const c=document.getElementById('card');
+  if(hoverId==='live'&&liveCard){ c.dataset.view=''; c.classList.remove('dropping'); c.innerHTML=liveHtml(); placeCard(); return; }
   if(isDeckId(hoverId)&&deckTools().includes(hoverId)){ renderDeckCard(c); placeCard(); return; }
+  c.dataset.view=''; c.classList.remove('dropping');
   const p=providers().find(x=>x.id===hoverId)||providers()[0];
   const snap=p.snap;
   const headIcon=glyphHtml(p,true);
@@ -1541,7 +1625,7 @@ function refreshClock(){
     if(card.classList.contains('show')) renderCard();
   }).catch(()=>{});
 }
-function hideCard(){card.classList.remove('show');hidePeek();reportHot();}
+function hideCard(){card.classList.remove('show');hidePeek();endSearch();resetClipSearch();reportHot();}
 function scheduleHide(){clearTimeout(hideTimer);hideTimer=setTimeout(hideCard,250);}
 // ===== Diagnostics + geometry =====
 function jslog(m){invoke('log_js',{msg:String(m)}).catch(()=>{});}
@@ -1568,7 +1652,9 @@ function reportHot(){
   const open=card.classList.contains('show');
   const rects=open?[rectOf(pill),tailReach(),rectOf(card)]:[rectOf(pill)];
   if(placeHandles()){ rects.push(rectOf(orb)); if(gripOut()||handleCarry) rects.push(gripRect()); }
-  callq('set_hot',{rects,expanded:open}).catch(()=>{});
+  // A peek (a live card, a meeting about to start) opened without the pointer, so the pointer being
+  // elsewhere must not close it: it is not reported as open until the pointer has been on it.
+  callq('set_hot',{rects,expanded:open&&!peeking}).catch(()=>{});
 }
 /* What wakes the folded notch: the resting pill, as long along the edge as the pill and deepened into
    the screen by the Mac's pillHotZone — Design.px(90), 34 here — because the pill is small and the
@@ -2166,7 +2252,7 @@ function holdOrb(){ release=null; orb.classList.remove('releasing'); runGrip(); 
    never folds mid-carry, mid-drag or under the right-click menu, all of which take the pointer off the
    notch on purpose — folding under them is what #239's reviewers caught, so it is ruled out here. */
 const FOLD_GRACE=450; // NotchWindowController.foldGrace
-function foldAllowed(){ return (onHover||fullScreen)&&!pointerIn&&!dragging&&!menuOpen; }
+function foldAllowed(){ return (onHover||fullScreen)&&!pointerIn&&!dragging&&!menuOpen&&!peeking&&!vaultDrag; }
 function setFolded(f){
   if(f===folded) return;
   folded=f;
@@ -2209,39 +2295,61 @@ listen('notch_shows_remaining',e=>{ showRemaining=e.payload===true; renderRing()
 invoke('get_notch_shows_remaining').then(v=>{ showRemaining=v===true; renderRing(); }).catch(()=>{});
 
 /* ---- The deck -----------------------------------------------------------------------------------
-   Now Playing (media.rs), the clipboard history (clipboard.rs) and a focus timer, as cells after the
-   rings — the Mac's DeckTool. Their cells are kept in the pill by `syncDeckCells`, which runs after
-   every `renderRing`: the rings' renderer rebuilds the pill whenever the providers change, and has
-   tests of its own that pin it, so it is wrapped here rather than taught about the deck. The timer
-   is the page's own; Rust only keeps its length and makes the sound. */
-const DECK_ORDER=['deck.nowPlaying','deck.clipboard','deck.timer'];
+   Now Playing (media.rs, with its volume row from audio.rs), the clipboard history and its snippets
+   (clipboard.rs), a focus timer, the Vault (vault.rs), the next meeting (meeting.rs) and, while
+   something downloads, a Downloads cell (live.rs), as cells after the rings — the Mac's DeckTool.
+   Their cells are kept in the pill by `syncDeckCells`, which runs after every `renderRing`: the
+   rings' renderer rebuilds the pill whenever the providers change, and has tests of its own that pin
+   it, so it is wrapped here rather than taught about the deck. The timer counts here; Rust keeps its
+   lengths, says what follows a phase (focus_timer.rs) and keeps the day's record. */
+const DECK_ORDER=['deck.nowPlaying','deck.clipboard','deck.timer','deck.vault','deck.meeting','deck.transfers'];
 const ICON={
   music:'<svg class="d-icon" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
   clip:'<svg class="d-icon" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>',
   timer:'<svg class="d-icon" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/></svg>',
   check:'<svg class="d-icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>',
   wave:'<svg class="d-icon" viewBox="0 0 24 24"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg>',
+  tray:'<svg class="d-icon" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>',
+  dropIn:'<svg class="d-icon" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg>',
+  calendar:'<svg class="d-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+  video:'<svg class="d-icon" viewBox="0 0 24 24"><path d="m22 8-6 4 6 4V8z"/><rect x="2" y="6" width="14" height="12" rx="2"/></svg>',
+  download:'<svg class="d-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>',
   text:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
   link:'<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
   file:'<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+  folder:'<svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+  pin:'<svg viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 3h6l-1 6 3 4H7l3-4z"/></svg>',
+  star:'<svg viewBox="0 0 24 24"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>',
+  bolt:'<svg viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+  output:'<svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><circle cx="12" cy="14" r="4"/><path d="M12 6h.01"/></svg>',
   play:'<svg viewBox="0 0 24 24"><path d="M7 5v14l12-7z"/></svg>',
   pause:'<svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
   next:'<svg viewBox="0 0 24 24"><path d="M5 5v14l10-7zM17 5h2v14h-2z"/></svg>',
   prev:'<svg viewBox="0 0 24 24"><path d="M19 5v14L9 12zM5 5h2v14H5z"/></svg>',
   artless:'<svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
 };
-const DECK_ICON={'deck.nowPlaying':ICON.music,'deck.clipboard':ICON.clip,'deck.timer':ICON.timer};
-const CLIP_ROWS=8, TIMER_PRESETS=[5,15,25,50];
-let deckPrefs={now_playing:false,clipboard:false,timer:false,clipboard_remember:true,timer_minutes:25};
+const DECK_ICON={'deck.nowPlaying':ICON.music,'deck.clipboard':ICON.clip,'deck.timer':ICON.timer,'deck.vault':ICON.tray,'deck.meeting':ICON.calendar,'deck.transfers':ICON.download};
+const CLIP_ROWS=8, VAULT_ROWS=5, TIMER_PRESETS=[5,15,25,50];
+let deckPrefs={now_playing:false,clipboard:false,timer:false,clipboard_remember:true,timer_minutes:25,vault:false,meeting:false,
+  live_charging:true,live_downloads:true,timer_cycles:false,timer_short_break:5,timer_long_break:15,timer_long_every:4,timer_auto_start:true,clipboard_plain:false};
 let media={present:false}, mediaArt=null, mediaArtKey=0;
+let audio={available:false,volume:0,muted:false,devices:[]}, audioListOpen=false, volDragging=false, volHoldUntil=0;
 let clips=[], copiedClip=null, copiedTimer=null;
-// 'idle', 'running' until endsAt, or 'paused' with `remaining` left
-let timer={state:'idle',endsAt:0,remaining:0};
+let clipTab='recent', snippets=[], copiedSnippet=null, clipStatus='', clipStatusTimer=null, searchTimer=null;
+let vaultItems=[], vaultPress=null, suppressClick=false;
+let meeting={configured:false,next:null,later:[]}, lastMeetingTick=0;
+let transfers=[], transfersLingerUntil=0;
+let liveTimer=null;
+// 'idle', 'running' until endsAt, or 'paused' with `remaining` left — in a phase of `minutes`
+let timer={state:'idle',endsAt:0,remaining:0,phase:'focus',minutes:25,round:1,of:4};
+let focusStats=null, focusStatsAt=0;
 let deckAudio=null;
 
 function isDeckId(id){ return typeof id==='string'&&id.startsWith('deck.'); }
+function transfersShown(){ return deckPrefs.live_downloads&&(transfers.length>0||Date.now()<transfersLingerUntil); }
 function deckTools(){
-  const on={'deck.nowPlaying':deckPrefs.now_playing,'deck.clipboard':deckPrefs.clipboard,'deck.timer':deckPrefs.timer};
+  const on={'deck.nowPlaying':deckPrefs.now_playing,'deck.clipboard':deckPrefs.clipboard,'deck.timer':deckPrefs.timer,
+    'deck.vault':deckPrefs.vault,'deck.meeting':deckPrefs.meeting,'deck.transfers':transfersShown()};
   return DECK_ORDER.filter(id=>on[id]);
 }
 // "3:07", or "1:02:45" once there are hours
@@ -2250,6 +2358,21 @@ function clock(ms){
   const two=n=>String(n).padStart(2,'0');
   return h?`${h}:${two(m)}:${two(sec)}`:`${m}:${two(sec)}`;
 }
+// A time of day as Windows is set to show it: "3:30 PM" or "15:30"
+function hm(ms){ return new Date(ms).toLocaleTimeString(ui().locale,{hour:'numeric',minute:'2-digit',hourCycle:stateSnap.clock_24h?'h23':'h12'}); }
+// "12 MB", "640 KB" — live.rs's size_text
+function sizeText(b){
+  if(b<1000) return `${b} B`;
+  if(b<1e6) return `${Math.round(b/1e3)} KB`;
+  if(b<1e9){ const mb=b/1e6; return mb<10?`${mb.toFixed(1)} MB`:`${Math.round(mb)} MB`; }
+  return `${(b/1e9).toFixed(1)} GB`;
+}
+function untilText(ms){
+  const m=Math.max(1,Math.ceil(ms/60000));
+  if(m<60) return `in ${m} min`;
+  const h=Math.floor(m/60), r=m%60;
+  return r?`in ${h} h ${r} min`:`in ${h} h`;
+}
 // Carried forward from the last reading rather than asked for every second
 function mediaPos(){
   if(!media.present) return 0;
@@ -2257,12 +2380,25 @@ function mediaPos(){
   if(media.duration_ms>0) p=Math.min(p,media.duration_ms);
   return Math.max(0,p);
 }
+function phaseLength(){ return Math.max(1,timer.minutes||deckPrefs.timer_minutes)*60000; }
 function timerMs(){
   if(timer.state==='running') return Math.max(0,timer.endsAt-Date.now());
   if(timer.state==='paused') return timer.remaining;
-  return deckPrefs.timer_minutes*60000;
+  return phaseLength();
 }
-function timerFrac(){ const length=deckPrefs.timer_minutes*60000; return length>0?Math.min(1,Math.max(0,timerMs()/length)):0; }
+function timerFrac(){ return Math.min(1,Math.max(0,timerMs()/phaseLength())); }
+function phaseName(p){ return textCopy(p==='long_break'?'Long break':p==='short_break'?'Short break':'Focus'); }
+function phaseLine(){ return timer.phase==='focus'?`${textCopy('Focus')} · ${timer.round} ${textCopy('of')} ${timer.of}`:phaseName(timer.phase); }
+// The meeting cell: the ring fills over the last hour before it, and over the meeting while it runs
+function meetingReading(now=Date.now()){
+  const n=meeting.next;
+  if(!n) return {frac:null,pct:'—',idle:true,glyph:ICON.calendar};
+  const glyph=n.link?ICON.video:ICON.calendar;
+  if(now>=n.start_ms){ const d=n.end_ms-n.start_ms; return {frac:d>0?Math.min(1,(now-n.start_ms)/d):1,pct:textCopy('now'),idle:false,glyph}; }
+  const mins=Math.ceil((n.start_ms-now)/60000);
+  if(mins<=60) return {frac:Math.max(0.02,1-mins/60),pct:`${mins}m`,idle:false,glyph};
+  return {frac:null,pct:hm(n.start_ms),idle:true,glyph};
+}
 
 function deckCellHtml(id,i){
   return `<div class="cell deck" data-p="${id}" style="--i:${i}"><div class="ringwrap"><svg class="ring" viewBox="0 0 56 56"></svg><div class="glyph"></div></div><div class="pct">—</div></div>`;
@@ -2279,7 +2415,7 @@ function syncDeckCells(){
   }
   for(const id of want){
     const cell=pill.querySelector(`.cell.deck[data-p="${id}"]`); if(!cell) continue;
-    let frac=null, glyph=DECK_ICON[id], pct='—', idle=true;
+    let frac=null, glyph=DECK_ICON[id], pct='—', idle=true, turning=false;
     if(id==='deck.nowPlaying'&&media.present){
       idle=!media.playing;
       if(media.duration_ms>0) frac=mediaPos()/media.duration_ms;
@@ -2288,16 +2424,26 @@ function syncDeckCells(){
     }else if(id==='deck.clipboard'){
       idle=!clips.length;
       pct=clips.length?String(clips.length):'—';
-      if(copiedClip!=null) glyph=ICON.check;
+      if(copiedClip!=null||copiedSnippet!=null) glyph=ICON.check;
     }else if(id==='deck.timer'){
       idle=timer.state!=='running';
       if(timer.state!=='idle') frac=timerFrac();
-      pct=timer.state==='idle'?`${deckPrefs.timer_minutes}m`:clock(timerMs());
+      pct=timer.state==='idle'?`${timer.minutes}m`:clock(timerMs());
+    }else if(id==='deck.vault'){
+      idle=!vaultItems.length&&!vaultDrag;
+      pct=vaultItems.length?String(vaultItems.length):'—';
+      if(vaultDrag){ frac=1; glyph=ICON.dropIn; }
+    }else if(id==='deck.meeting'){
+      ({frac,pct,idle,glyph}=meetingReading());
+    }else if(id==='deck.transfers'){
+      idle=!transfers.length;
+      if(transfers.length){ turning=true; pct=sizeText(transfers.reduce((s,t)=>s+t.bytes,0)); }
+      else{ pct=textCopy('Done'); glyph=ICON.check; }
     }
     cell.classList.toggle('idle',idle);
     const svg=cell.querySelector('svg.ring');
     const ring=`<circle cx="28" cy="28" r="22" fill="${HOLE}"/><circle cx="28" cy="28" r="25" fill="none" stroke="${TRACK}" stroke-width="5"/>`
-      +(frac!=null?svgArc(25,Math.min(Math.max(frac,0),1),AMPLE,5):'');
+      +(turning?`<g class="arc-turn">${svgArc(25,0.28,AMPLE,5)}</g>`:frac!=null?svgArc(25,Math.min(Math.max(frac,0),1),AMPLE,5):'');
     if(svg.dataset.v!==ring){ svg.innerHTML=ring; svg.dataset.v=ring; }
     const g=cell.querySelector('.glyph');
     if(g.dataset.v!==glyph){ g.innerHTML=glyph; g.dataset.v=glyph; }
@@ -2312,16 +2458,67 @@ renderRing=function(){ renderProviderRings(); syncDeckCells(); };
 // The cells, and the card when it is one of the deck's
 function deckChanged(){
   syncDeckCells();
-  if(card.classList.contains('show')&&isDeckId(hoverId)){ renderCard(); armWatchdog(); }
+  if(!card.classList.contains('show')||!isDeckId(hoverId)) return;
+  if(!deckTools().includes(hoverId)){ hideCard(); return; }
+  renderCard(); armWatchdog();
 }
 
 function renderDeckCard(c){
-  c.innerHTML=hoverId==='deck.nowPlaying'?nowPlayingHtml():hoverId==='deck.clipboard'?clipboardHtml():timerHtml();
+  c.classList.toggle('dropping',hoverId==='deck.vault'&&vaultDrag);
+  const view=hoverId+(hoverId==='deck.clipboard'?':'+clipTab:'');
+  if(hoverId==='deck.clipboard'&&c.dataset.view===view&&c.querySelector('.c-list')){
+    // The search box keeps its caret and what was typed: only what is under it is redrawn
+    c.querySelector('.c-list').innerHTML=clipListHtml();
+    const st=c.querySelector('.c-status'); if(st) st.textContent=clipStatus;
+    return;
+  }
+  // A slider being dragged is not rebuilt under the pointer
+  if(hoverId==='deck.nowPlaying'&&volDragging&&c.dataset.view===view) return;
+  // The same downloads, further along: only their figures change, so the bars keep moving
+  const tkey=transfers.map(t=>t.name).join('\n');
+  if(hoverId==='deck.transfers'&&transfers.length&&c.dataset.view===view&&c.dataset.tkey===tkey){
+    c.querySelectorAll('.tr-row').forEach((row,i)=>{
+      const t=transfers[i], m=row.querySelector('.tr-meta');
+      if(t&&m) m.textContent=sizeText(t.bytes)+(t.speed?` · ${sizeText(t.speed)}/s`:'');
+    });
+    return;
+  }
+  c.dataset.tkey=hoverId==='deck.transfers'?tkey:'';
+  if(hoverId==='deck.timer'&&Date.now()-focusStatsAt>60000) loadFocusStats();
+  c.dataset.view=view;
+  c.innerHTML=hoverId==='deck.nowPlaying'?nowPlayingHtml()
+    :hoverId==='deck.clipboard'?clipboardHtml()
+    :hoverId==='deck.vault'?vaultHtml()
+    :hoverId==='deck.meeting'?meetingHtml()
+    :hoverId==='deck.transfers'?transfersHtml()
+    :timerHtml();
+  if(hoverId==='deck.clipboard') bindSearch(c);
+  if(hoverId==='deck.nowPlaying') bindVolume(c);
+}
+
+// ---- Now Playing, and its volume row
+function speakerIcon(){
+  const v=audio.muted?0:audio.volume;
+  const waves=audio.muted?'<path d="m23 9-6 6M17 9l6 6"/>':v===0?'':v<34?'<path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>'
+    :v<67?'<path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M18.36 5.64a9 9 0 0 1 0 12.73"/>'
+    :'<path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M18.36 5.64a9 9 0 0 1 0 12.73"/><path d="M21.19 2.81a13 13 0 0 1 0 18.38"/>';
+  return `<svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/>${waves}</svg>`;
+}
+function volumeHtml(){
+  if(!audio.available) return '';
+  const dev=(audio.devices||[]).find(d=>d.default);
+  let h=`<div class="a-row"><button class="d-btn" data-act="mute" title="${esc(textCopy(audio.muted?'Unmute':'Mute'))}">${speakerIcon()}</button>`
+    +`<input class="a-vol" type="range" min="0" max="100" step="1" value="${audio.volume}" style="--f:${audio.muted?0:audio.volume}%" aria-label="${esc(textCopy('Volume'))}">`
+    +`<button class="d-btn" data-act="outputs" title="${esc(dev?dev.name:textCopy('Output'))}">${ICON.output}</button></div>`;
+  if(audioListOpen&&(audio.devices||[]).length)
+    h+=`<div class="a-list">`+audio.devices.map(d=>`<div class="a-dev" data-dev="${esc(d.id)}"><span class="ck">${d.default?'✓':''}</span><span class="nm">${esc(d.name)}</span></div>`).join('')+`</div>`;
+  return h;
 }
 function nowPlayingHtml(){
   if(!media.present)
     return `<div class="c-head"><span class="c-title">${esc(textCopy('Now Playing'))}</span></div>`
-      +`<div class="c-note">${esc(textCopy('Nothing is playing. Start something in Spotify, a browser or Media Player and it shows up here.'))}</div>`;
+      +`<div class="c-note">${esc(textCopy('Nothing is playing. Start something in Spotify, a browser or Media Player and it shows up here.'))}</div>`
+      +volumeHtml();
   const art=mediaArt?`<img class="d-art" src="${mediaArt}" alt="">`:`<div class="d-art">${ICON.artless}</div>`;
   const sub=[media.artist,media.album].filter(Boolean).join(' — ');
   const d=media.duration_ms, pos=mediaPos();
@@ -2333,8 +2530,38 @@ function nowPlayingHtml(){
     +`<button class="d-btn" data-act="previous"${media.can_previous?'':' disabled'} title="${esc(textCopy('Previous'))}">${ICON.prev}</button>`
     +`<button class="d-btn main" data-act="toggle"${media.can_toggle?'':' disabled'} title="${esc(textCopy(media.playing?'Pause':'Play'))}">${media.playing?ICON.pause:ICON.play}</button>`
     +`<button class="d-btn" data-act="next"${media.can_next?'':' disabled'} title="${esc(textCopy('Next'))}">${ICON.next}</button>`
-    +`</div>`;
+    +`</div>`+volumeHtml();
 }
+let volTimer=null, volPending=null;
+function bindVolume(c){
+  const r=c.querySelector('.a-vol'); if(!r) return;
+  r.addEventListener('pointerdown',()=>{ volDragging=true; });
+  const done=()=>{ volDragging=false; volHoldUntil=Date.now()+800; };
+  r.addEventListener('pointerup',done); r.addEventListener('pointercancel',done); r.addEventListener('change',done);
+  r.addEventListener('input',()=>{
+    const v=Number(r.value);
+    r.style.setProperty('--f',v+'%');
+    audio={...audio,volume:v,muted:v>0?false:audio.muted};
+    const b=c.querySelector('[data-act="mute"]'); if(b) b.innerHTML=speakerIcon();
+    volPending=v;
+    if(!volTimer) volTimer=setTimeout(()=>{ volTimer=null; invoke('set_volume',{volume:volPending}).catch(()=>{}); },60);
+  });
+}
+// The slider follows the volume keys, but never fights a hand on it
+function applyAudio(a){
+  if(!a) return;
+  if(volDragging||Date.now()<volHoldUntil){ audio={...a,volume:audio.volume,muted:audio.muted}; return; }
+  const structural=!!audio.available!==!!a.available||JSON.stringify(audio.devices||[])!==JSON.stringify(a.devices||[]);
+  audio=a;
+  if(!structural&&hoverId==='deck.nowPlaying'&&card.classList.contains('show')){
+    const r=card.querySelector('.a-vol'); if(r){ r.value=a.volume; r.style.setProperty('--f',(a.muted?0:a.volume)+'%'); }
+    const b=card.querySelector('[data-act="mute"]'); if(b) b.innerHTML=speakerIcon();
+    return;
+  }
+  if(structural) deckChanged();
+}
+
+// ---- The clipboard: Recent (with its search box) and Snippets
 function clipAge(at){
   const s=Math.max(0,(Date.now()-at)/1000);
   if(s<60) return textCopy('now');
@@ -2343,55 +2570,290 @@ function clipAge(at){
   return Math.floor(s/86400)+'d';
 }
 function clipboardHtml(){
-  let html=`<div class="d-headrow"><span class="c-title">${esc(textCopy('Clipboard'))}</span>`
-    +(clips.some(c=>!c.pinned)?`<button class="d-link" data-act="clear" title="${esc(textCopy('Forget every clip that isn’t pinned'))}">${esc(textCopy('Clear'))}</button>`:'')+`</div>`;
-  if(!clips.length)
-    return html+`<div class="c-note">${esc(textCopy(deckPrefs.clipboard?'Copy something and it shows up here. Click a clip to copy it again.':'Clipboard history is off.'))}</div>`;
-  for(const c of clips.slice(0,CLIP_ROWS)){
+  const tab=(id,label)=>`<button class="d-tab${clipTab===id?' on':''}" data-tab="${id}">${esc(textCopy(label))}</button>`;
+  let html=`<div class="d-headrow"><span class="c-title">${esc(textCopy('Clipboard'))}</span><span class="d-tabs">${tab('recent','Recent')}${tab('snippets','Snippets')}</span>`
+    +`<span class="d-acts"><button class="d-link" data-act="plain" title="${esc(textCopy('Put formatted text on the clipboard back as plain text'))}">${esc(textCopy('Plain text'))}</button>`
+    +(clipTab==='recent'&&clips.some(c=>!c.pinned)?`<button class="d-link" data-act="clear" title="${esc(textCopy('Forget every clip that isn’t pinned'))}">${esc(textCopy('Clear'))}</button>`:'')
+    +`</span></div>`;
+  if(clipTab==='recent') html+=`<input class="c-search" type="text" spellcheck="false" autocomplete="off" placeholder="${esc(textCopy('Search'))}" value="${esc(clipQuery)}">`;
+  return html+`<div class="c-status">${esc(clipStatus)}</div><div class="c-list">${clipListHtml()}</div>`;
+}
+function clipListHtml(){
+  if(clipTab==='snippets'){
+    if(!snippets.length) return `<div class="c-note">${esc(textCopy('No snippets yet. Star a clip to keep it here, or add some in Settings → Deck.'))}</div>`;
+    let h='';
+    for(const s of snippets.slice(0,CLIP_ROWS)){
+      const label=(s.title||(s.text.split('\n').find(l=>l.trim())||'')).trim();
+      const copied=copiedSnippet===s.id;
+      h+=`<div class="clip${copied?' copied':''}" data-snippet="${s.id}"><span class="k">${ICON.text}</span><span class="t">${esc(label)}</span>`
+        +`<span class="a">${copied?esc(textCopy('Copied')):''}</span></div>`;
+    }
+    if(snippets.length>CLIP_ROWS) h+=`<div class="s-more">+${snippets.length-CLIP_ROWS}</div>`;
+    return h;
+  }
+  const searching=!!clipQuery.trim();
+  const list=searching&&clipResults?clipResults:clips;
+  if(!list.length)
+    return `<div class="c-note">${esc(textCopy(searching?'Nothing copied matches that.':deckPrefs.clipboard?'Copy something and it shows up here. Click a clip to copy it again.':'Clipboard history is off.'))}</div>`;
+  let html='';
+  for(const c of list.slice(0,CLIP_ROWS)){
     const kind=c.kind==='link'?ICON.link:c.kind==='files'?ICON.file:ICON.text;
     const copied=copiedClip===c.id;
+    const kept=c.kind!=='files'&&snippets.some(s=>s.text===c.detail);
     html+=`<div class="clip${copied?' copied':''}" data-clip="${c.id}">`
       +`<span class="k">${kind}</span><span class="t">${esc(c.preview)}</span>`
       +`<span class="a">${copied?esc(textCopy('Copied')):esc(clipAge(c.at))}</span>`
-      +`<button class="x${c.pinned?' on':''}" data-pin="${c.id}" title="${esc(textCopy(c.pinned?'Unpin':'Pin'))}">${c.pinned?'★':'☆'}</button>`
+      +(c.kind!=='files'?`<button class="x${kept?' on':''}" data-snip="${c.id}" title="${esc(textCopy(kept?'Saved as a snippet':'Save as a snippet'))}">${ICON.star}</button>`:'')
+      +`<button class="x${c.pinned?' on':''}" data-pin="${c.id}" title="${esc(textCopy(c.pinned?'Unpin':'Pin'))}">${ICON.pin}</button>`
       +`<button class="x" data-remove="${c.id}" title="${esc(textCopy('Remove'))}">✕</button></div>`;
   }
-  if(clips.length>CLIP_ROWS) html+=`<div class="s-more">+${clips.length-CLIP_ROWS}</div>`;
+  if(list.length>CLIP_ROWS) html+=`<div class="s-more">+${list.length-CLIP_ROWS}</div>`;
   return html;
 }
+function refreshClipList(){
+  if(hoverId!=='deck.clipboard'||!card.classList.contains('show')) return;
+  renderCard(); armWatchdog();
+}
+function flashStatus(msg){
+  clipStatus=msg; clearTimeout(clipStatusTimer);
+  clipStatusTimer=setTimeout(()=>{ clipStatus=''; refreshClipList(); },1600);
+  refreshClipList();
+}
+function runSearch(){
+  const q=clipQuery;
+  if(!q.trim()){ clipResults=null; refreshClipList(); return; }
+  invoke('clipboard_search',{query:q}).then(v=>{ if(q===clipQuery){ clipResults=Array.isArray(v)?v:[]; refreshClipList(); } }).catch(()=>{});
+}
+// The notch never takes the keyboard, so it is asked for while the box is in use and handed back after
+function beginSearch(box){
+  if(searchFocused) return;
+  searchFocused=true;
+  invoke('notch_keyboard',{on:true}).then(()=>{ if(searchFocused) box.focus(); }).catch(()=>{});
+}
+function endSearch(){
+  if(!searchFocused) return;
+  searchFocused=false;
+  invoke('notch_keyboard',{on:false}).catch(()=>{});
+  const box=card.querySelector('.c-search');
+  if(box&&document.activeElement===box) box.blur();
+}
+function resetClipSearch(){ clipQuery=''; clipResults=null; clearTimeout(searchTimer); }
+function bindSearch(c){
+  const box=c.querySelector('.c-search'); if(!box) return;
+  box.addEventListener('mousedown',()=>beginSearch(box));
+  box.addEventListener('focus',()=>beginSearch(box));
+  box.addEventListener('blur',()=>endSearch());
+  box.addEventListener('input',()=>{ clipQuery=box.value; clearTimeout(searchTimer); searchTimer=setTimeout(runSearch,80); });
+  box.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){
+      e.preventDefault();
+      if(box.value){ box.value=''; resetClipSearch(); refreshClipList(); } else box.blur();
+    }else if(e.key==='Enter'){
+      const first=(clipQuery.trim()&&clipResults?clipResults:clips)[0];
+      if(first) copyClip(first.id);
+    }
+  });
+}
+
+// ---- The Vault
+function vaultHtml(){
+  const n=vaultItems.length;
+  let html=`<div class="d-headrow"><span class="c-title">${esc(textCopy('Vault'))}</span><span class="d-acts">`;
+  if(n) html+=`<button class="d-link" data-act="vshare" title="${esc(textCopy('Share with Windows’ Share panel'))}">${esc(textCopy('Share'))}</button>`
+    +`<button class="d-link" data-act="vzip" title="${esc(textCopy('Zip everything here into one archive'))}">${esc(textCopy('Zip'))}</button>`
+    +`<button class="d-link" data-act="vclear" title="${esc(textCopy('Empty the Vault'))}">${esc(textCopy('Clear'))}</button>`;
+  html+=`</span></div>`;
+  if(!n) return html+`<div class="v-drop">${esc(textCopy('Drop files here to hold them. Drag them out to copy them anywhere — hold Shift to move.'))}</div>`;
+  html+=`<div class="v-banner">${esc(textCopy('Drop to add to the Vault'))}</div>`;
+  for(const v of vaultItems.slice(0,VAULT_ROWS)){
+    const icon=v.icon?`<img class="v-icon" src="${v.icon}" alt="" draggable="false">`:`<span class="v-icon">${v.is_dir?ICON.folder:ICON.file}</span>`;
+    html+=`<div class="v-row${v.missing?' missing':''}" data-vault="${v.id}" title="${esc(v.path)}">${icon}`
+      +`<div class="v-meta"><div class="v-name">${esc(v.name)}</div><div class="v-detail">${esc(textCopy(v.detail))}</div></div>`
+      +`<button class="x" data-reveal="${v.id}" title="${esc(textCopy('Show in Explorer'))}">${ICON.folder}</button>`
+      +`<button class="x" data-vremove="${v.id}" title="${esc(textCopy('Remove'))}">✕</button></div>`;
+  }
+  if(n>VAULT_ROWS) html+=`<div class="s-more">+${n-VAULT_ROWS}</div>`;
+  if(n>=2) html+=`<div class="v-dragall">${esc(textCopy('Drag all'))} ${n}</div>`;
+  return html+`<div class="v-hint">${esc(textCopy('Drag a file out to copy it — hold Shift to move it. Double-click to open.'))}</div>`;
+}
+
+// ---- The next meeting
+function meetingTimeLine(n,now=Date.now()){
+  const range=`${hm(n.start_ms)} – ${hm(n.end_ms)}`;
+  if(now>=n.start_ms){
+    const left=Math.max(0,Math.ceil((n.end_ms-now)/60000));
+    return `${range} · ${textCopy('now')}`+(left?` · ${left} min left`:'');
+  }
+  return `${range} · ${untilText(n.start_ms-now)}`;
+}
+function meetingHtml(){
+  let html=`<div class="c-head"><span class="c-title">${esc(textCopy('Next meeting'))}</span></div>`;
+  if(!meeting.configured) return html+`<div class="c-note">${esc(textCopy('Add your calendar’s iCal address in Settings → Deck.'))}</div>`;
+  const n=meeting.next;
+  if(!n) return html+`<div class="c-note">${esc(meeting.error?textCopy('The calendar could not be read: ')+meeting.error:textCopy('Nothing in the next 24 hours.'))}</div>`;
+  html+=`<div class="m-title">${esc(n.title)}</div><div class="m-time">${esc(meetingTimeLine(n))}</div>`;
+  if(n.calendar) html+=`<div class="m-sub">${esc(n.calendar)}</div>`;
+  if(n.location&&!/^https?:\/\//i.test(n.location)) html+=`<div class="m-sub">${esc(n.location)}</div>`;
+  if(n.link) html+=`<button class="t-chip go m-join" data-join="next">${esc(textCopy('Join'))}</button>`;
+  if(meeting.later&&meeting.later.length){
+    html+=`<div class="m-later"><div class="g-head" style="margin-top:0">${esc(textCopy('Later today'))}</div>`;
+    for(const l of meeting.later) html+=`<div class="s-row"><span class="m-at">${esc(hm(l.start_ms))}</span>${esc(l.title)}</div>`;
+    html+=`</div>`;
+  }
+  return html;
+}
+
+// ---- Downloads
+function transfersHtml(){
+  let html=`<div class="c-head"><span class="c-title">${esc(textCopy('Downloads'))}</span></div>`;
+  if(!transfers.length) return html+`<div class="c-note">${esc(textCopy('All done.'))}</div>`;
+  for(const t of transfers.slice(0,5)){
+    html+=`<div class="tr-row"><div class="tr-name">${esc(t.name)}</div><div class="d-bar busy" style="margin:5px 0 3px"><div class="d-fill"></div></div>`
+      +`<div class="tr-meta">${esc(sizeText(t.bytes))}${t.speed?` · ${esc(sizeText(t.speed))}/s`:''}</div></div>`;
+  }
+  if(transfers.length>5) html+=`<div class="s-more">+${transfers.length-5}</div>`;
+  return html;
+}
+function applyTransfers(list){
+  const was=transfers.length;
+  transfers=Array.isArray(list)?list:[];
+  if(!transfers.length&&was){
+    transfersLingerUntil=Date.now()+5000;
+    setTimeout(()=>{ if(!transfers.length) deckChanged(); },5100);
+  }
+  deckChanged();
+}
+
+// ---- The focus timer
 function timerHtml(){
   const start=timer.state==='running'?'Pause':timer.state==='paused'?'Resume':'Start';
+  const cycles=deckPrefs.timer_cycles;
+  const fresh=timer.state==='idle'&&timer.phase==='focus'&&(!cycles||timer.round===1);
   return `<div class="c-head"><span class="c-title">${esc(textCopy('Focus Timer'))}</span></div>`
+    +(cycles?`<div class="t-phase">${esc(phaseLine())}</div>`:'')
     +`<div class="t-digits${timer.state==='running'?'':' still'}">${clock(timerMs())}</div>`
     +`<div class="d-bar"><div class="d-fill" style="width:${(timerFrac()*100).toFixed(2)}%"></div></div>`
-    +`<div class="t-row">${TIMER_PRESETS.map(m=>`<button class="t-chip${deckPrefs.timer_minutes===m?' on':''}" data-minutes="${m}">${m}m</button>`).join('')}</div>`
+    +(timer.phase==='focus'?`<div class="t-row">${TIMER_PRESETS.map(m=>`<button class="t-chip${deckPrefs.timer_minutes===m?' on':''}" data-minutes="${m}">${m}m</button>`).join('')}</div>`:'')
     +`<div class="t-row"><button class="t-chip go" data-act="timer">${esc(textCopy(start))}</button>`
-    +`<button class="t-chip" data-act="reset"${timer.state==='idle'?' disabled':''}>${esc(textCopy('Reset'))}</button></div>`;
+    +`<button class="t-chip" data-act="reset"${fresh?' disabled':''}>${esc(textCopy('Reset'))}</button>`
+    +(cycles?`<button class="t-chip" data-act="skip">${esc(textCopy('Skip'))}</button>`:'')+`</div>`
+    +statsHtml();
 }
-// Just the moving parts, once a second, so a card being read is not rebuilt under the pointer
+function statsHtml(){
+  if(!focusStats||!Array.isArray(focusStats.days)) return '';
+  const max=Math.max(1,...focusStats.days.map(d=>d.minutes));
+  const n=focusStats.today_sessions;
+  return `<div class="t-stats"><div class="t-today">${esc(textCopy('Today'))}: ${esc(focusStats.today_text)} · ${n} ${esc(textCopy(n===1?'session':'sessions'))}</div><div class="t-week">`
+    +focusStats.days.map(d=>`<div class="t-day${d.today?' today':''}" title="${esc(d.date)}: ${d.minutes} min"><i style="height:${Math.round(2+20*d.minutes/max)}px"></i><span>${esc(d.label)}</span></div>`).join('')
+    +`</div></div>`;
+}
+function loadFocusStats(){
+  focusStatsAt=Date.now();
+  invoke('get_focus_stats').then(s=>{ focusStats=s; if(hoverId==='deck.timer'&&card.classList.contains('show')){ renderCard(); armWatchdog(); } }).catch(()=>{});
+}
+
+// ---- The live cards: the charger, a finished download, a phase ending, a meeting about to start
+function liveHtml(){
+  const l=liveCard; if(!l) return '';
+  const row=(glyph,title,detail)=>`<div class="l-row"><div class="l-glyph">${glyph}</div><div style="min-width:0"><div class="l-title">${esc(title)}</div>`
+    +(detail?`<div class="l-detail">${esc(detail)}</div>`:'')+`</div></div>`;
+  if(l.kind==='meeting'){
+    const n=l.event, mins=Math.max(1,Math.ceil((n.start_ms-Date.now())/60000));
+    return row(n.link?ICON.video:ICON.calendar,`${n.title} in ${mins} min`,`${hm(n.start_ms)} – ${hm(n.end_ms)}`)
+      +(n.link?`<div class="l-actions"><button class="t-chip go" data-live="join">${esc(textCopy('Join'))}</button></div>`:'');
+  }
+  if(l.kind==='charging'||l.kind==='battery'){
+    const p=Math.max(0,Math.min(100,l.percent==null?0:l.percent));
+    // Drawn empty the first time, so fillBattery can fill it; full height on any redraw after that
+    const width=l.filled?` style="width:calc((100% - 4px) * ${p/100})"`:'';
+    const glyph=`<div class="l-battery${l.kind==='battery'&&p<=20?' low':''}"><i data-to="${p}"${width}></i>${l.kind==='charging'?`<b>${ICON.bolt}</b>`:''}</div>`;
+    return row(glyph,l.title,l.detail);
+  }
+  if(l.kind==='downloaded')
+    return row(ICON.download,textCopy('Downloaded'),l.detail)
+      +`<div class="l-actions"><button class="t-chip go" data-live="open">${esc(textCopy('Open'))}</button><button class="t-chip" data-live="reveal">${esc(textCopy('Show in Explorer'))}</button></div>`;
+  return row(ICON.timer,l.title,l.detail);
+}
+// The battery fills up to its level as the card arrives: the charging animation
+function fillBattery(){
+  const i=card.querySelector('.l-battery i[data-to]'); if(!i) return;
+  const to=Math.max(0,Math.min(100,Number(i.dataset.to)||0));
+  if(liveCard) liveCard.filled=true;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ i.style.width=`calc((100% - 4px) * ${to/100})`; }));
+}
+// Not over a card someone is using: the notice would take it away from under the pointer
+function showLive(c,ms){
+  if(dragging||handleCarry||vaultDrag||!c) return;
+  if(pointerIn&&card.classList.contains('show')&&hoverId!=='live') return;
+  liveCard=c; peeking=true;
+  unfold(); hoverId='live'; showCard(); fillBattery();
+  clearTimeout(liveTimer); liveTimer=setTimeout(endLive,ms);
+}
+function endLive(){
+  peeking=false; clearTimeout(liveTimer);
+  if(hoverId==='live'&&card.classList.contains('show')&&!pointerIn){ hideCard(); liveCard=null; }
+  // From here the card closes as any other does: when the pointer leaves it
+  if(card.classList.contains('show')) reportHot();
+  scheduleFold();
+}
+
+// ---- Clicks in the cards
 function tickDeckCard(){
   if(hoverId==='deck.nowPlaying'&&media.present){
     const d=media.duration_ms, pos=mediaPos();
-    const f=card.querySelector('.d-fill'); if(f&&d>0) f.style.width=(pos/d*100).toFixed(2)+'%';
+    const f=card.querySelector('.d-bar .d-fill'); if(f&&d>0) f.style.width=(pos/d*100).toFixed(2)+'%';
     const a=card.querySelector('.d-pos'); if(a) a.textContent=clock(pos);
     const b=card.querySelector('.d-left'); if(b&&d>0) b.textContent='-'+clock(d-pos);
   }else if(hoverId==='deck.timer'){
     const t=card.querySelector('.t-digits'); if(t) t.textContent=clock(timerMs());
     const f=card.querySelector('.d-fill'); if(f) f.style.width=(timerFrac()*100).toFixed(2)+'%';
+  }else if(hoverId==='deck.meeting'&&meeting.next){
+    const t=card.querySelector('.m-time'); if(t) t.textContent=meetingTimeLine(meeting.next);
   }
 }
 
+card.addEventListener('dragstart',e=>e.preventDefault()); // an icon is not an HTML5 drag; dragging out is vault_drag_out
 card.addEventListener('click',e=>{
+  if(hoverId==='live'){
+    const b=e.target.closest('[data-live]'); if(!b||!liveCard) return;
+    e.stopPropagation();
+    const act=b.dataset.live, l=liveCard;
+    if(act==='join'&&l.event&&l.event.link) invoke('meeting_join',{link:l.event.link}).catch(err=>notice('meeting_join failed: '+err));
+    else if(act==='open'&&l.path) invoke('live_open',{path:l.path}).catch(err=>notice('live_open failed: '+err));
+    else if(act==='reveal'&&l.path) invoke('live_reveal',{path:l.path}).catch(err=>notice('live_reveal failed: '+err));
+    endLive(); hideCard(); liveCard=null;
+    return;
+  }
   if(!isDeckId(hoverId)) return;
-  const el=e.target.closest('[data-act],[data-clip],[data-pin],[data-remove],[data-minutes]');
+  if(suppressClick){ suppressClick=false; return; }
+  const el=e.target.closest('[data-act],[data-clip],[data-pin],[data-remove],[data-minutes],[data-tab],[data-snip],[data-snippet],[data-reveal],[data-vremove],[data-join],[data-dev]');
   if(!el||el.disabled) return;
   e.stopPropagation();
-  if(el.dataset.pin!=null){ invoke('clipboard_pin',{id:Number(el.dataset.pin)}).catch(err=>notice('clipboard_pin failed: '+err)); return; }
-  if(el.dataset.remove!=null){ invoke('clipboard_remove',{id:Number(el.dataset.remove)}).catch(err=>notice('clipboard_remove failed: '+err)); return; }
-  if(el.dataset.clip!=null){ copyClip(Number(el.dataset.clip)); return; }
-  if(el.dataset.minutes!=null){ setTimerMinutes(Number(el.dataset.minutes)); return; }
-  const act=el.dataset.act;
+  const d=el.dataset;
+  if(d.tab!=null){ clipTab=d.tab; card.dataset.view=''; renderCard(); armWatchdog(); return; }
+  if(d.snip!=null){ invoke('clipboard_save_snippet',{id:Number(d.snip)}).then(v=>{ snippets=Array.isArray(v)?v:snippets; flashStatus(textCopy('Saved as a snippet')); }).catch(err=>notice('clipboard_save_snippet failed: '+err)); return; }
+  if(d.snippet!=null){ copySnippet(Number(d.snippet)); return; }
+  if(d.pin!=null){ invoke('clipboard_pin',{id:Number(d.pin)}).catch(err=>notice('clipboard_pin failed: '+err)); return; }
+  if(d.remove!=null){ invoke('clipboard_remove',{id:Number(d.remove)}).catch(err=>notice('clipboard_remove failed: '+err)); return; }
+  if(d.clip!=null){ copyClip(Number(d.clip)); return; }
+  if(d.reveal!=null){ invoke('vault_reveal',{id:Number(d.reveal)}).catch(err=>notice('vault_reveal failed: '+err)); return; }
+  if(d.vremove!=null){ invoke('vault_remove',{id:Number(d.vremove)}).catch(err=>notice('vault_remove failed: '+err)); return; }
+  if(d.join!=null){ const n=meeting.next; if(n&&n.link) invoke('meeting_join',{link:n.link}).catch(err=>notice('meeting_join failed: '+err)); return; }
+  if(d.dev!=null){
+    const id=d.dev; audioListOpen=false;
+    audio={...audio,devices:(audio.devices||[]).map(x=>({...x,default:x.id===id}))};
+    invoke('set_output',{id}).catch(err=>notice('set_output failed: '+err));
+    deckChanged(); return;
+  }
+  if(d.minutes!=null){ setTimerMinutes(Number(d.minutes)); return; }
+  const act=d.act;
   if(act==='clear') invoke('clipboard_clear').catch(err=>notice('clipboard_clear failed: '+err));
+  else if(act==='plain') invoke('clipboard_strip_formatting').then(done=>flashStatus(textCopy(done?'The clipboard is plain text now':'Nothing to change'))).catch(err=>notice('clipboard_strip_formatting failed: '+err));
+  else if(act==='vshare') invoke('vault_share',{ids:[]}).catch(err=>notice(textCopy('Share: ')+err));
+  else if(act==='vzip') invoke('vault_zip',{ids:[]}).catch(err=>notice(textCopy('Zip: ')+err));
+  else if(act==='vclear') invoke('vault_clear').catch(err=>notice('vault_clear failed: '+err));
+  else if(act==='mute'){ audio={...audio,muted:!audio.muted}; invoke('set_muted',{muted:audio.muted}).catch(()=>{}); deckChanged(); }
+  else if(act==='outputs'){ audioListOpen=!audioListOpen; deckChanged(); }
   else if(act==='toggle'||act==='next'||act==='previous') mediaControl(act);
   else if(act==='seek'&&media.can_seek&&media.duration_ms>0){
     const r=el.getBoundingClientRect();
@@ -2399,6 +2861,28 @@ card.addEventListener('click',e=>{
   }
   else if(act==='timer') timerToggle();
   else if(act==='reset') timerReset();
+  else if(act==='skip') timerSkip();
+});
+// Dragging out of the Vault: a press on a row (or on "Drag all") that starts to move hands over to
+// Windows' own drag, which takes it from there — the button is still down when Rust starts it.
+card.addEventListener('mousedown',e=>{
+  if(hoverId!=='deck.vault'||e.button!==0||e.target.closest('button')) return;
+  const row=e.target.closest('.v-row,.v-dragall'); if(!row) return;
+  vaultPress={x:e.clientX,y:e.clientY,ids:row.dataset.vault?[Number(row.dataset.vault)]:[]};
+});
+document.addEventListener('mousemove',e=>{
+  if(!vaultPress) return;
+  if(!(e.buttons&1)){ vaultPress=null; return; }
+  if(Math.hypot(e.clientX-vaultPress.x,e.clientY-vaultPress.y)<5) return;
+  const ids=vaultPress.ids; vaultPress=null;
+  suppressClick=true; setTimeout(()=>{ suppressClick=false; },500);
+  invoke('vault_drag_out',{ids}).catch(err=>notice(textCopy('Drag out: ')+err));
+});
+document.addEventListener('mouseup',()=>{ vaultPress=null; });
+card.addEventListener('dblclick',e=>{
+  if(hoverId!=='deck.vault'||e.target.closest('button')) return;
+  const row=e.target.closest('.v-row');
+  if(row) invoke('vault_open',{id:Number(row.dataset.vault)}).catch(err=>notice(String(err)));
 });
 
 // The preview of a clip its row cuts short: more than one line, several files, or text the row
@@ -2407,7 +2891,8 @@ const clippeek=document.getElementById('clippeek');
 let peekId=null;
 function hidePeek(){ peekId=null; if(clippeek) clippeek.classList.remove('show'); }
 function showPeek(row){
-  const c=clips.find(x=>String(x.id)===row.dataset.clip);
+  const list=clipQuery.trim()&&clipResults?clipResults:clips;
+  const c=list.find(x=>String(x.id)===row.dataset.clip);
   if(!c){ hidePeek(); return; }
   const t=row.querySelector('.t');
   const cut=!!t&&t.scrollWidth>t.clientWidth+1;
@@ -2415,11 +2900,11 @@ function showPeek(row){
   if(!cut&&!several){ hidePeek(); return; }
   if(peekId!==c.id){
     peekId=c.id;
-    const more=c.chars>c.detail.length?'\u2026':'';
+    const more=c.chars>c.detail.length?'…':'';
     const size=c.kind==='files'
       ? `${c.detail.split('\n').filter(Boolean).length} ${textCopy('files')}`
       : `${c.chars.toLocaleString()} ${textCopy(c.chars===1?'character':'characters')}`+(c.lines>1?`, ${c.lines} ${textCopy('lines')}`:'');
-    clippeek.innerHTML=`<div class="p-text">${esc(c.detail)}${more}</div><div class="p-foot">${esc(size)} \u2014 ${esc(textCopy('click to copy'))}</div>`;
+    clippeek.innerHTML=`<div class="p-text">${esc(c.detail)}${more}</div><div class="p-foot">${esc(size)} — ${esc(textCopy('click to copy'))}</div>`;
   }
   const z=parseFloat(document.documentElement.style.zoom)||1;
   const r=row.getBoundingClientRect(), W=innerWidth/z, H=innerHeight/z;
@@ -2433,16 +2918,20 @@ function showPeek(row){
   clippeek.style.top=Math.round(top)+'px';
 }
 card.addEventListener('mousemove',e=>{
-  if(hoverId!=='deck.clipboard'){ if(peekId!=null) hidePeek(); return; }
+  if(hoverId!=='deck.clipboard'||clipTab!=='recent'){ if(peekId!=null) hidePeek(); return; }
   const row=e.target.closest('.clip');
   if(row) showPeek(row); else if(peekId!=null) hidePeek();
 });
 card.addEventListener('mouseleave',()=>hidePeek());
 
-// A click on a deck cell is that tool's own button: play or pause, start or pause the timer
+// A click on a deck cell is that tool's own button: play or pause, start or pause the timer, join
 function deckClick(id){
   if(id==='deck.nowPlaying'){ if(media.present&&media.can_toggle) mediaControl('toggle'); }
   else if(id==='deck.timer') timerToggle();
+  else if(id==='deck.meeting'){
+    const n=meeting.next;
+    if(n&&n.link&&Date.now()>=n.start_ms-10*60000&&Date.now()<n.end_ms) invoke('meeting_join',{link:n.link}).catch(err=>notice('meeting_join failed: '+err));
+  }
 }
 function mediaControl(action){
   // Answered at once; the next reading confirms or corrects it
@@ -2460,6 +2949,13 @@ function copyClip(id){
     deckChanged();
   }).catch(err=>notice('clipboard_copy failed: '+err));
 }
+function copySnippet(id){
+  invoke('snippet_copy',{id}).then(()=>{
+    copiedSnippet=id; clearTimeout(copiedTimer);
+    copiedTimer=setTimeout(()=>{ copiedSnippet=null; deckChanged(); },1200);
+    deckChanged();
+  }).catch(err=>notice('snippet_copy failed: '+err));
+}
 
 // The chime is made here as well as by Rust: Windows' own sound can be switched off. The context
 // is made on the click that starts the timer, since a page may only start sound from a click.
@@ -2476,45 +2972,81 @@ function chime(){
     });
   }catch(_){}
 }
+function startTimer(){ timer={...timer,state:'running',endsAt:Date.now()+timerMs(),remaining:0}; }
 function timerToggle(){
   ensureAudio();
-  if(timer.state==='running') timer={state:'paused',endsAt:0,remaining:Math.max(0,timer.endsAt-Date.now())};
-  else{ const left=timer.state==='paused'?timer.remaining:deckPrefs.timer_minutes*60000; timer={state:'running',endsAt:Date.now()+left,remaining:0}; }
+  if(timer.state==='running') timer={...timer,state:'paused',endsAt:0,remaining:Math.max(0,timer.endsAt-Date.now())};
+  else startTimer();
   deckChanged();
 }
-function timerReset(){ timer={state:'idle',endsAt:0,remaining:0}; deckChanged(); }
+// The phase Rust says comes next, waiting to start
+function applyPhase(n){
+  if(!n) return;
+  timer={state:'idle',endsAt:0,remaining:0,phase:n.phase||'focus',minutes:n.minutes||deckPrefs.timer_minutes,round:n.round||1,of:n.of||deckPrefs.timer_long_every};
+}
+function timerReset(){
+  timer={...timer,state:'idle',endsAt:0,remaining:0,phase:'focus',minutes:deckPrefs.timer_minutes,round:1};
+  deckChanged();
+  invoke('focus_reset_cycle').then(n=>{ applyPhase(n); deckChanged(); }).catch(()=>{});
+}
+function timerSkip(){
+  const done=timer.phase, wasRunning=timer.state==='running';
+  invoke('focus_phase_done',{phase:done,skipped:true}).then(n=>{
+    applyPhase(n);
+    if(n.auto_start||wasRunning) startTimer();
+    deckChanged();
+  }).catch(err=>notice('focus_phase_done failed: '+err));
+}
 function setTimerMinutes(m){
   if(m===deckPrefs.timer_minutes) return;
   deckPrefs={...deckPrefs,timer_minutes:m};
-  if(timer.state!=='idle') timer={state:'idle',endsAt:0,remaining:0};
+  if(timer.phase==='focus') timer={...timer,state:'idle',endsAt:0,remaining:0,minutes:m};
   deckChanged();
   invoke('set_timer_minutes',{minutes:m}).catch(()=>{});
 }
-// Time is up: the notch opens on the timer's card for a few seconds, as the Mac's peek does
+// Time is up: a chime, the record, the next phase (started by itself when the cycle says so), and a
+// card saying so — the Mac's peek
 function timerFinished(){
-  timer={state:'idle',endsAt:0,remaining:0};
+  const done=timer.phase;
+  timer={...timer,state:'idle',endsAt:0,remaining:0};
   chime();
   invoke('timer_finished').catch(()=>{});
-  if(!dragging&&!handleCarry){
-    unfold(); hoverId='deck.timer'; showCard();
-    setTimeout(()=>{ if(!pointerIn&&hoverId==='deck.timer'){ hideCard(); scheduleFold(); } },6000);
-  }
+  invoke('focus_phase_done',{phase:done,skipped:false}).then(n=>{
+    applyPhase(n);
+    if(n.auto_start) startTimer();
+    const detail=deckPrefs.timer_cycles
+      ?`${textCopy('Next')}: ${phaseName(n.phase)} · ${n.minutes} min`+(n.auto_start?'':` — ${textCopy('click the cell to start')}`)
+      :'';
+    showLive({kind:'focus',title:n.notice||textCopy('Focus done'),detail},6000);
+    loadFocusStats();
+    deckChanged();
+  }).catch(()=>{ showLive({kind:'focus',title:textCopy('Focus done'),detail:''},6000); deckChanged(); });
   deckChanged();
 }
 setInterval(()=>{
   if(timer.state==='running'&&timer.endsAt<=Date.now()) timerFinished();
-  if(!((media.present&&media.playing)||timer.state==='running')) return;
+  const moving=(media.present&&media.playing)||timer.state==='running'||transfers.length>0;
+  const meetingDue=!!meeting.next&&Date.now()-lastMeetingTick>=15000;
+  if(!moving&&!meetingDue) return;
+  if(meetingDue) lastMeetingTick=Date.now();
   syncDeckCells();
   if(card.classList.contains('show')) tickDeckCard();
 },1000);
 
 function applyDeck(p){
   if(!p) return;
+  const wasCycles=deckPrefs.timer_cycles;
   deckPrefs={...deckPrefs,...p};
-  if(!deckPrefs.timer) timer={state:'idle',endsAt:0,remaining:0};
+  if(!deckPrefs.timer) timer={...timer,state:'idle',endsAt:0,remaining:0,phase:'focus',minutes:deckPrefs.timer_minutes,round:1};
+  else if(wasCycles!==deckPrefs.timer_cycles&&timer.state==='idle') timer={...timer,phase:'focus',minutes:deckPrefs.timer_minutes,round:1};
+  // An idle phase takes a new length straight away
+  if(timer.state==='idle'){
+    const len=timer.phase==='long_break'?deckPrefs.timer_long_break:timer.phase==='short_break'?deckPrefs.timer_short_break:deckPrefs.timer_minutes;
+    timer={...timer,minutes:len,of:deckPrefs.timer_long_every};
+  }
   if(isDeckId(hoverId)&&!deckTools().includes(hoverId)&&card.classList.contains('show')) hideCard();
   renderRing();
-  if(card.classList.contains('show')&&isDeckId(hoverId)) renderCard();
+  if(card.classList.contains('show')&&isDeckId(hoverId)){ card.dataset.view=''; renderCard(); }
 }
 function applyMedia(m){
   media=m&&m.present?m:{present:false};
@@ -2529,8 +3061,37 @@ listen('deck',e=>applyDeck(e.payload)).catch(()=>{});
 invoke('get_deck').then(applyDeck).catch(()=>{});
 listen('media',e=>applyMedia(e.payload)).catch(()=>{});
 invoke('get_media').then(applyMedia).catch(()=>{});
-listen('clipboard',e=>{ clips=Array.isArray(e.payload)?e.payload:[]; deckChanged(); }).catch(()=>{});
+listen('audio',e=>applyAudio(e.payload)).catch(()=>{});
+invoke('get_audio').then(applyAudio).catch(()=>{});
+listen('clipboard',e=>{ clips=Array.isArray(e.payload)?e.payload:[]; if(clipQuery.trim()) runSearch(); deckChanged(); }).catch(()=>{});
 invoke('get_clipboard').then(v=>{ clips=Array.isArray(v)?v:[]; deckChanged(); }).catch(()=>{});
+listen('snippets',e=>{ snippets=Array.isArray(e.payload)?e.payload:[]; deckChanged(); }).catch(()=>{});
+invoke('get_snippets').then(v=>{ snippets=Array.isArray(v)?v:[]; deckChanged(); }).catch(()=>{});
+listen('vault',e=>{ vaultItems=Array.isArray(e.payload)?e.payload:[]; deckChanged(); }).catch(()=>{});
+invoke('get_vault').then(v=>{ vaultItems=Array.isArray(v)?v:[]; deckChanged(); }).catch(()=>{});
+// A drag of files over the notch: it opens on the Vault's card, which says where to drop
+listen('vault_drag',e=>{
+  const over=e.payload===true;
+  if(over===vaultDrag) return;
+  vaultDrag=over;
+  if(over){
+    if(peeking){ peeking=false; clearTimeout(liveTimer); liveCard=null; }
+    unfold(); hoverId='deck.vault';
+    if(card.classList.contains('show')){ renderCard(); armWatchdog(); } else showCard();
+  }else{
+    card.classList.remove('dropping');
+    if(card.classList.contains('show')&&hoverId==='deck.vault'){ renderCard(); armWatchdog(); }
+    scheduleFold();
+  }
+  syncDeckCells();
+}).catch(()=>{});
+listen('meeting',e=>{ meeting=e.payload||{configured:false,next:null,later:[]}; deckChanged(); }).catch(()=>{});
+invoke('get_meeting').then(m=>{ if(m) meeting=m; deckChanged(); }).catch(()=>{});
+listen('meeting_heads_up',e=>{ if(e.payload) showLive({kind:'meeting',event:e.payload},10000); }).catch(()=>{});
+listen('live',e=>{ const c=e.payload; if(c) showLive(c,c.kind==='downloaded'?6000:4000); }).catch(()=>{});
+listen('transfers',e=>applyTransfers(e.payload)).catch(()=>{});
+invoke('get_transfers').then(applyTransfers).catch(()=>{});
+loadFocusStats();
 
 listen('usage',e=>{usage=e.payload||usage;claudeActionMessage='';settle('claude');renderRing();if(card.classList.contains('show'))renderCard();})
   .catch(e=>notice('listen(usage) failed: '+e));

@@ -32,8 +32,17 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 # and base64 the base64url parts. (ring was already in the transitive closure via rustls.)
 ring = "0.17"
 base64 = "0.22"
+# The next meeting (meeting.rs): calendar feeds name their time zones the IANA way, which only a
+# table of the zones can turn into offsets.
+chrono-tz = "0.10"
+# The Vault's Zip button (vault.rs). Already in the build through the updater; deflate through the
+# zlib-rs backend flate2 already has here (plain "deflate" would add zopfli too).
+zip = { version = "4", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [target.'cfg(windows)'.dependencies]
+# The #[implement] and #[interface] macros expand to `windows_core::…` paths, so it is named here too
+# (the version the windows crate below re-exports).
+windows-core = "0.58"
 windows = { version = "0.58", features = [
   "Win32_Foundation",
   "Win32_UI_Accessibility",
@@ -59,4 +68,23 @@ windows = { version = "0.58", features = [
   "Foundation",
   "Media_Control",
   "Storage_Streams",
+  # The Vault: its own drop target (all of a drag, not only files), dragging files back out with the
+  # shell's own data object, file icons, and Windows' Share panel.
+  "implement",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_SystemServices",
+  "Win32_UI_Shell_Common",
+  "Win32_Storage_FileSystem",
+  "ApplicationModel_DataTransfer",
+  "Foundation_Collections",
+  "Storage",
+  # Live status: the charger and the battery.
+  "Win32_System_Power",
+  # Now Playing's volume row: the default output's volume, the outputs there are, and switching.
+  "Win32_Media_Audio",
+  "Win32_Media_Audio_Endpoints",
+  "Win32_Devices_FunctionDiscovery",
+  "Win32_UI_Shell_PropertiesSystem",
+  "Win32_System_Variant",
 ] }

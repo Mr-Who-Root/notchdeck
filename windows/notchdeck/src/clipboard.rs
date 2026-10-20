@@ -131,6 +131,81 @@ impl History {
         let rest = self.clips.iter().filter(|c| !c.pinned);
         pinned.chain(rest).map(view_of).collect()
     }
+
+    /// The clips whose text holds every word of `query`, ignoring case, in the same order as
+    /// `view`. For copied files that is their paths, so a file is found by its name.
+    pub fn search(&self, query: &str) -> Vec<ClipView> {
+        let words: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
+        if words.is_empty() {
+            return self.view();
+        }
+        let hit = |c: &&Clip| {
+            let text = c.text.to_lowercase();
+            words.iter().all(|w| text.contains(w.as_str()))
+        };
+        let pinned = self.clips.iter().filter(|c| c.pinned).filter(hit);
+        let rest = self.clips.iter().filter(|c| !c.pinned).filter(hit);
+        pinned.chain(rest).map(view_of).collect()
+    }
+}
+
+/// A piece of text kept to be pasted again and again — the Mac's snippets.
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct Snippet {
+    pub id: u64,
+    /// Optional: the card shows the text's first line without one.
+    #[serde(default)]
+    pub title: String,
+    pub text: String,
+}
+
+#[derive(Default)]
+pub struct Snippets {
+    list: Vec<Snippet>,
+}
+
+impl Snippets {
+    pub fn from_saved(list: Vec<Snippet>) -> Self {
+        Self { list }
+    }
+
+    /// A new one (no id) goes at the end; an existing one is changed in place. Empty text is refused.
+    pub fn save(&mut self, id: Option<u64>, title: &str, text: &str) -> Result<u64, String> {
+        if text.trim().is_empty() {
+            return Err("a snippet needs some text".into());
+        }
+        let text: String = text.chars().take(MAX_TEXT).collect();
+        let title = title.trim().chars().take(80).collect::<String>();
+        if let Some(id) = id {
+            if let Some(s) = self.list.iter_mut().find(|s| s.id == id) {
+                s.title = title;
+                s.text = text;
+                return Ok(id);
+            }
+        }
+        // The same text twice is one snippet.
+        if let Some(s) = self.list.iter_mut().find(|s| s.text == text) {
+            if !title.is_empty() {
+                s.title = title;
+            }
+            return Ok(s.id);
+        }
+        let id = self.list.iter().map(|s| s.id).max().unwrap_or(0) + 1;
+        self.list.push(Snippet { id, title, text });
+        Ok(id)
+    }
+
+    pub fn remove(&mut self, id: u64) {
+        self.list.retain(|s| s.id != id);
+    }
+
+    pub fn get(&self, id: u64) -> Option<&Snippet> {
+        self.list.iter().find(|s| s.id == id)
+    }
+
+    pub fn list(&self) -> &[Snippet] {
+        &self.list
+    }
 }
 
 fn view_of(clip: &Clip) -> ClipView {
@@ -184,6 +259,9 @@ pub fn classify(text: &str) -> Option<ClipKind> {
 
 static ENABLED: AtomicBool = AtomicBool::new(false);
 static REMEMBER: AtomicBool = AtomicBool::new(true);
+/// Every copy of formatted text is put back as plain text.
+static PLAIN: AtomicBool = AtomicBool::new(false);
+static SNIPPETS: Mutex<Option<Snippets>> = Mutex::new(None);
 /// The sequence number of the clipboard as we last read or wrote it.
 static SEEN: AtomicU32 = AtomicU32::new(0);
 static HISTORY: Mutex<Option<History>> = Mutex::new(None);
@@ -244,9 +322,112 @@ pub fn set_remember(on: bool) {
     }
 }
 
+pub fn set_plain(on: bool) {
+    PLAIN.store(on, Ordering::SeqCst);
+}
+
 #[tauri::command]
 pub fn get_clipboard() -> Vec<ClipView> {
     history().get_or_insert_with(load).view()
+}
+
+/// The search box in the card: every word typed, anywhere in a clip.
+#[tauri::command]
+pub fn clipboard_search(query: String) -> Vec<ClipView> {
+    history().get_or_insert_with(load).search(&query)
+}
+
+/// Rewrites formatted text on the clipboard as the same text, plain. Nothing to do is not a failure.
+#[tauri::command]
+pub fn clipboard_strip_formatting() -> Result<bool, String> {
+    let Some((ClipKind::Text | ClipKind::Link, text)) = platform::read() else {
+        return Ok(false);
+    };
+    platform::write(&Clip { id: 0, kind: ClipKind::Text, text, pinned: false, at: 0 })?;
+    SEEN.store(platform::sequence(), Ordering::SeqCst);
+    Ok(true)
+}
+
+fn snippets() -> std::sync::MutexGuard<'static, Option<Snippets>> {
+    SNIPPETS.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+fn snippets_path() -> std::path::PathBuf {
+    crate::config::config_path()
+        .parent()
+        .map(|d| d.join("snippets.json"))
+        .unwrap_or_else(|| "snippets.json".into())
+}
+
+fn load_snippets() -> Snippets {
+    Snippets::from_saved(
+        std::fs::read_to_string(snippets_path())
+            .ok()
+            .and_then(|s| serde_json::from_str::<Vec<Snippet>>(&s).ok())
+            .unwrap_or_default(),
+    )
+}
+
+/// Snippets are kept whether or not the history is: they were saved on purpose.
+fn snippets_changed(app: &AppHandle, s: &Snippets) {
+    let path = snippets_path();
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    if let Ok(json) = serde_json::to_string_pretty(s.list()) {
+        let tmp = path.with_extension("json.tmp");
+        if std::fs::write(&tmp, json).is_ok() {
+            let _ = std::fs::rename(&tmp, &path);
+        }
+    }
+    let _ = app.emit("snippets", s.list());
+}
+
+#[tauri::command]
+pub fn get_snippets() -> Vec<Snippet> {
+    snippets().get_or_insert_with(load_snippets).list().to_vec()
+}
+
+#[tauri::command]
+pub fn snippet_save(app: AppHandle, id: Option<u64>, title: String, text: String) -> Result<Vec<Snippet>, String> {
+    let mut guard = snippets();
+    let s = guard.get_or_insert_with(load_snippets);
+    s.save(id, &title, &text)?;
+    snippets_changed(&app, s);
+    Ok(s.list().to_vec())
+}
+
+#[tauri::command]
+pub fn snippet_delete(app: AppHandle, id: u64) -> Vec<Snippet> {
+    let mut guard = snippets();
+    let s = guard.get_or_insert_with(load_snippets);
+    s.remove(id);
+    snippets_changed(&app, s);
+    s.list().to_vec()
+}
+
+/// A clip from the history, kept as a snippet (the star on its row).
+#[tauri::command]
+pub fn clipboard_save_snippet(app: AppHandle, id: u64) -> Result<Vec<Snippet>, String> {
+    let text = {
+        let mut guard = history();
+        let h = guard.get_or_insert_with(load);
+        let clip = h.get(id).ok_or("no such clip")?;
+        if clip.kind == ClipKind::Files {
+            return Err("files cannot be a snippet".into());
+        }
+        clip.text.clone()
+    };
+    snippet_save(app, None, String::new(), text)
+}
+
+/// Puts a snippet on the clipboard, as plain text. Not recorded as a new clip: it is not one.
+#[tauri::command]
+pub fn snippet_copy(id: u64) -> Result<(), String> {
+    let text = snippets().get_or_insert_with(load_snippets).get(id).map(|s| s.text.clone()).ok_or("no such snippet")?;
+    platform::write(&Clip { id: 0, kind: ClipKind::Text, text, pinned: false, at: 0 })?;
+    SEEN.store(platform::sequence(), Ordering::SeqCst);
+    Ok(())
 }
 
 /// Puts a clip back on the clipboard, ready to paste.
@@ -308,6 +489,14 @@ pub fn start(app: AppHandle) {
             let Some((kind, text)) = platform::read() else {
                 continue;
             };
+            // "Always strip formatting": formatted text goes back as the same text, plain, and that
+            // rewrite is ours, so it is not seen as another copy.
+            if PLAIN.load(Ordering::SeqCst) && kind != ClipKind::Files && platform::has_formatting() {
+                let plain = Clip { id: 0, kind: ClipKind::Text, text: text.clone(), pinned: false, at: 0 };
+                if platform::write(&plain).is_ok() {
+                    SEEN.store(platform::sequence(), Ordering::SeqCst);
+                }
+            }
             let mut guard = history();
             let h = guard.get_or_insert_with(load);
             h.record(kind, text, crate::media::now_ms());
@@ -350,6 +539,17 @@ mod platform {
 
     pub fn sequence() -> u32 {
         unsafe { GetClipboardSequenceNumber() }
+    }
+
+    /// Whether what is on the clipboard carries formatting beside its plain text: a web page's HTML,
+    /// or Word's and WordPad's rich text.
+    pub fn has_formatting() -> bool {
+        unsafe {
+            [w!("HTML Format"), w!("Rich Text Format")].iter().any(|name| {
+                let f = RegisterClipboardFormatW(*name);
+                f != 0 && IsClipboardFormatAvailable(f).is_ok()
+            })
+        }
     }
 
     /// The clipboard is shared, and another app may be holding it open for a moment.
@@ -527,6 +727,9 @@ mod platform {
     pub fn sequence() -> u32 {
         0
     }
+    pub fn has_formatting() -> bool {
+        false
+    }
     pub fn excluded() -> bool {
         true
     }
@@ -599,6 +802,42 @@ mod tests {
         assert_eq!(v.detail.chars().count(), super::DETAIL_CHARS);
         assert_eq!(v.chars, super::DETAIL_CHARS + 50 + 1 + "second line".len());
         assert_eq!(v.lines, 2);
+    }
+
+    #[test]
+    fn search_finds_every_word_ignoring_case() {
+        let mut h = History::default();
+        h.record(ClipKind::Text, "Quarterly report draft".into(), 0);
+        h.record(ClipKind::Link, "https://example.com/Report".into(), 1);
+        h.record(ClipKind::Files, "C:\\Users\\me\\Desktop\\budget.xlsx".into(), 2);
+        h.record(ClipKind::Text, "lunch order".into(), 3);
+        let id = h.clips().iter().find(|c| c.text == "lunch order").unwrap().id;
+        h.toggle_pin(id);
+        let previews = |q: &str| h.search(q).into_iter().map(|v| v.preview).collect::<Vec<_>>();
+        assert_eq!(previews("report"), ["https://example.com/Report", "Quarterly report draft"]);
+        assert_eq!(previews("REPORT draft"), ["Quarterly report draft"], "every word has to be there");
+        assert_eq!(previews("budget"), ["budget.xlsx"], "files by their names");
+        assert_eq!(previews("  ").len(), 4, "an empty search is the whole history");
+        assert_eq!(previews("")[0], "lunch order", "pinned first, as the card lists them");
+        assert!(previews("nothing like this").is_empty());
+    }
+
+    #[test]
+    fn snippets_are_saved_edited_and_deduped() {
+        use super::Snippets;
+        let mut s = Snippets::default();
+        assert!(s.save(None, "", "   ").is_err(), "empty text is not a snippet");
+        let a = s.save(None, "Address", "1 Infinite Loop").unwrap();
+        let b = s.save(None, "", "Thanks, talk soon!").unwrap();
+        assert_ne!(a, b);
+        assert_eq!(s.save(None, "", "1 Infinite Loop").unwrap(), a, "the same text is the same snippet");
+        s.save(Some(b), "Sign-off", "Thanks — talk soon!").unwrap();
+        assert_eq!(s.get(b).unwrap().title, "Sign-off");
+        assert_eq!(s.get(b).unwrap().text, "Thanks — talk soon!");
+        s.remove(a);
+        assert_eq!(s.list().len(), 1);
+        let c = s.save(None, "", "new").unwrap();
+        assert!(c > b, "ids are not reused");
     }
 
     #[test]

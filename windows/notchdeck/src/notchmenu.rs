@@ -37,8 +37,32 @@ pub fn show_notch_menu(window: Window, provider: Option<String>) -> Result<(), S
         .map_err(err)?;
         menu = menu.item(&open);
     }
+    // The deck's: the next meeting to join, and the Vault's folder.
+    let (vault_on, meeting_on) = {
+        let st = app.state::<crate::AppState>();
+        let c = st.cfg.lock().unwrap();
+        (c.deck_vault, c.deck_meeting)
+    };
+    let next = meeting_on.then(crate::meeting::get_meeting).and_then(|m| m.next).filter(|n| n.link.is_some());
+    if next.is_some() || vault_on {
+        menu = menu.separator();
+    }
+    if let Some(n) = &next {
+        let title: String = n.title.chars().take(40).collect();
+        menu = menu.item(
+            &MenuItemBuilder::with_id(format!("{PREFIX}join"), tr(&lang, "join_meeting").replace("%@", &title))
+                .build(app)
+                .map_err(err)?,
+        );
+    }
+    if vault_on {
+        menu = menu.item(&MenuItemBuilder::with_id(format!("{PREFIX}vault_folder"), tr(&lang, "vault_folder")).build(app).map_err(err)?);
+        if !crate::vault::get_vault().is_empty() {
+            menu = menu.item(&MenuItemBuilder::with_id(format!("{PREFIX}vault_empty"), tr(&lang, "vault_empty")).build(app).map_err(err)?);
+        }
+    }
     // Checked while the notch is always open; unticking it is Show on hover
-    let keep_open = CheckMenuItemBuilder::with_id(format!("{PREFIX}keep_open"), tr(&lang, "keep_open"))
+    let keep_open =CheckMenuItemBuilder::with_id(format!("{PREFIX}keep_open"), tr(&lang, "keep_open"))
         .checked(crate::keeps_open(app))
         .build(app)
         .map_err(err)?;
@@ -89,6 +113,13 @@ fn handle(app: &AppHandle, id: &str) {
     match item {
         "refresh" => crate::refresh_all(app),
         "keep_open" => crate::toggle_keep_open(app),
+        "join" => {
+            if let Some(link) = crate::meeting::get_meeting().next.and_then(|n| n.link) {
+                let _ = crate::meeting::meeting_join(link);
+            }
+        }
+        "vault_folder" => crate::vault::vault_open_folder(),
+        "vault_empty" => crate::vault::vault_clear(app.clone()),
         "quit" => app.exit(0),
         _ => {}
     }
